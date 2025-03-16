@@ -16,4 +16,4 @@ This app is deployed using GitHub Actions and GitHub Pages.
 3. Download the result when the calculation is complete.
 
 ## Created By
-Daef Jabir
+Daef Jabir Alshaebi
