@@ -17,4 +17,4 @@ This app is deployed using GitHub Actions and GitHub Pages.
 
 ## Created By
 Daef Jabir Alshaebi
-Yemen 
+Computer Science Engineer 
