@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FaLinkedin, FaDownload } from 'react-icons/fa';
 
-const API_BASE = "https://factorial-backend-top1.fly.dev/";
+const API_BASE = "https://factorial-backend.fly.dev/";
 
 export default function App() {
   const [input, setInput] = useState('');
