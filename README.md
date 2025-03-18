@@ -1,6 +1,6 @@
 ### Factorial Calculator
 
-A professional factorial calculator built with React and deployed to GitHub Pages...
+A professional factorial calculator built with React and deployed to GitHub Pages.##
 
 ## Features
 - Calculate factorials for large numbers.
