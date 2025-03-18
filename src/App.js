@@ -21,15 +21,20 @@ export default function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateInput(input)) return;
+    const num = parseInt(input);
+    if (isNaN(num) || num <= 0 || num !== parseFloat(input)) {
+      setError('Please enter a valid positive integer.');
+      return;
+    }
 
     setStatus('processing');
 
     try {
+      console.log("Request body:", JSON.stringify({ n: num }));
       const response = await fetch(`${API_BASE}compute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ n: parseInt(input) }),
+        body: JSON.stringify({ n: num }),
       });
 
       if (!response.ok) {
