@@ -30,7 +30,6 @@ export default function App() {
     setStatus('processing');
 
     try {
-      console.log("Request body:", JSON.stringify({ n: num }));
       const response = await fetch(`${API_BASE}compute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -51,7 +50,7 @@ export default function App() {
 
   const pollStatus = (jobId) => {
     let attempts = 0;
-    const maxAttempts = 30;
+    const maxAttempts = 60; // Increased timeout
 
     const interval = setInterval(async () => {
       attempts++;
@@ -74,13 +73,17 @@ export default function App() {
           clearInterval(interval);
           setStatus('complete');
           setDownloadUrl(`${API_BASE}download/${jobId}`);
+        } else if (status === 'failed') {
+          clearInterval(interval);
+          setError('Factorial computation failed. Please try again.');
+          setStatus('error');
         }
       } catch (err) {
         clearInterval(interval);
         setError('Status check failed. Please try again.');
         setStatus('error');
       }
-    }, 2000);
+    }, 2000); // Poll every 2 seconds
   };
 
   return (
@@ -109,7 +112,9 @@ export default function App() {
       </form>
 
       {error && <div className="error">{error}</div>}
-      {status === 'processing' && <div className="loading">Calculating factorial...</div>}
+      {status === 'processing' && (
+        <div className="loading">Calculating factorial... This may take a few seconds.</div>
+      )}
 
       {status === 'complete' && (
         <a href={downloadUrl} download className="download-btn">
@@ -120,7 +125,7 @@ export default function App() {
       <div className="credits">
         <h3>Created by Daef Al-Shaebi</h3>
         <div className="social-links">
-          <a href="https://www.linkedin.com/in/al-shaebi-daef-jaber-709894112?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app" target="_blank" rel="noopener noreferrer">
+          <a href="https://www.linkedin.com/in/al-shaebi-daef-jaber-709894112" target="_blank" rel="noopener noreferrer">
             <FaLinkedin />
           </a>
         </div>
