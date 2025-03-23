@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/factorial-frontend/static/js/main.bf369e34.js",
+    "main.js": "/factorial-frontend/static/js/main.e8f0768e.js",
     "index.html": "/factorial-frontend/index.html",
-    "main.bf369e34.js.map": "/factorial-frontend/static/js/main.bf369e34.js.map"
+    "main.e8f0768e.js.map": "/factorial-frontend/static/js/main.e8f0768e.js.map"
   },
   "entrypoints": [
-    "static/js/main.bf369e34.js"
+    "static/js/main.e8f0768e.js"
   ]
 }
