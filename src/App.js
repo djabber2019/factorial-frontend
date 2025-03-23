@@ -37,20 +37,21 @@ export default function App() {
       });
 
       if (!response.ok) {
-        throw new Error('Server connection failed');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Server connection failed');
       }
 
       const { job_id } = await response.json();
       pollStatus(job_id);
     } catch (err) {
-      setError('Server connection failed');
+      setError(err.message);
       setStatus('error');
     }
   };
 
   const pollStatus = (jobId) => {
     let attempts = 0;
-    const maxAttempts = 60; // Increased timeout
+    const maxAttempts = 60; // 2 minutes timeout
 
     const interval = setInterval(async () => {
       attempts++;
@@ -67,7 +68,7 @@ export default function App() {
           throw new Error('Status check failed');
         }
 
-        const { status } = await response.json();
+        const { status, result } = await response.json();
 
         if (status === 'complete') {
           clearInterval(interval);
