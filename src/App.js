@@ -54,7 +54,7 @@ export default function App() {
 
   const pollStatus = (jobId) => {
     let attempts = 0;
-    const maxAttempts = 2000; // 2 minutes timeout
+    const maxAttempts = 1800; // 1 hour timeout (assuming 2 seconds per attempt)
 
     const interval = setInterval(async () => {
       attempts++;
@@ -117,7 +117,7 @@ export default function App() {
 
       {error && <div className="error">{error}</div>}
       {status === 'processing' && (
-        <div className="loading">Calculating factorial... This may take a few seconds.</div>
+        <div className="loading">Calculating factorial... This may take up to 1 hour.</div>
       )}
 
       {status === 'complete' && (
