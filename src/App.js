@@ -53,42 +53,48 @@ export default function App() {
   };
 
   const pollStatus = (jobId) => {
-    let attempts = 0;
-    const maxAttempts = 1800; // 1 hour timeout (assuming 2 seconds per attempt)
+  const pollStatus = (jobId) => {
+  let attempts = 0;
+  const maxAttempts = 1800; // 1 hour timeout (assuming 2 seconds per attempt)
 
-    const interval = setInterval(async () => {
-      attempts++;
-      if (attempts > maxAttempts) {
-        clearInterval(interval);
-        setError('Calculation timed out. Please try again.');
-        setStatus('error');
-        return;
+  const interval = setInterval(async () => {
+    attempts++;
+    if (attempts > maxAttempts) {
+      clearInterval(interval);
+      setError('Calculation timed out. Please try again.');
+      setStatus('error');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}status/${jobId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Status check failed');
       }
 
-      try {
-        const response = await fetch(`${API_BASE}status/${jobId}`);
-        if (!response.ok) {
-          throw new Error('Status check failed');
-        }
+      const { status } = await response.json();
 
-        const { status, result } = await response.json();
-
-        if (status === 'complete') {
-          clearInterval(interval);
-          setStatus('complete');
-          setDownloadUrl(`${API_BASE}download/${jobId}`);
-        } else if (status === 'failed') {
-          clearInterval(interval);
-          setError('Factorial computation failed. Please try again.');
-          setStatus('error');
-        }
-      } catch (err) {
+      if (status === 'complete') {
         clearInterval(interval);
-        setError('Status check failed. Please try again.');
+        setStatus('complete');
+        setDownloadUrl(`${API_BASE}download/${jobId}`);
+      } else if (status === 'failed') {
+        clearInterval(interval);
+        setError('Factorial computation failed. Please try again.');
+        setStatus('error');
+      } else if (status === 'not_found') {
+        clearInterval(interval);
+        setError('Job not found. Please try again.');
         setStatus('error');
       }
-    }, 2000); // Poll every 2 seconds
-  };
+    } catch (err) {
+      clearInterval(interval);
+      setError(err.message || 'Status check failed. Please try again.');
+      setStatus('error');
+    }
+  }, 2000); // Poll every 2 seconds
+};
 
   return (
     <div className="container">
