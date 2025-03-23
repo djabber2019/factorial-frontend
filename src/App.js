@@ -30,15 +30,18 @@ export default function App() {
     setStatus('processing');
 
     try {
+      const payload = { n: num };
+      console.log("Sending payload:", payload); // Log the payload
+
       const response = await fetch(`${API_BASE}compute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ n: num }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Server connection failed');
+        throw new Error(errorData.detail || 'Server connection failed');
       }
 
       const { job_id } = await response.json();
