@@ -121,22 +121,25 @@ button:hover:not(:disabled) {
   margin-top: 0.5rem;
 }
 
+/* LinkedIn Icon */
 .social-links a {
-  color: #3498db;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px; /* Adjust the size of the icon container */
+  height: 40px; /* Adjust the size of the icon container */
+  background-color: #0077b5; /* LinkedIn brand color */
+  border-radius: 50%; /* Makes the icon circular */
+  color: #fff; /* Icon color */
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.social-links a svg {
+  font-size: 1.5rem; /* Adjust the size of the icon */
 }
 
 .social-links a:hover {
-  color: #2980b9;
-}
-
-/* LinkedIn Icon */
-.social-links a svg {
-  font-size: 1.5rem; /* Adjust the size as needed */
-  transition: color 0.3s ease;
-}
-
-.social-links a:hover svg {
-  color: #2980b9; /* Change color on hover */
+  background-color: #005582; /* Darker LinkedIn brand color on hover */
+  transform: scale(1.1); /* Slightly enlarge the icon on hover */
 }
