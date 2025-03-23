@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import './global.css'; // Import global styles
+//import './global.css'; // Import global styles
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
