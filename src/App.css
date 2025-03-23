@@ -130,3 +130,13 @@ button:hover:not(:disabled) {
 .social-links a:hover {
   color: #2980b9;
 }
+
+/* LinkedIn Icon */
+.social-links a svg {
+  font-size: 1.5rem; /* Adjust the size as needed */
+  transition: color 0.3s ease;
+}
+
+.social-links a:hover svg {
+  color: #2980b9; /* Change color on hover */
+}
