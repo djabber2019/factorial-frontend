@@ -1,3 +1,4 @@
+import './App.css';
 import { useState } from 'react';
 import { FaLinkedin, FaDownload } from 'react-icons/fa';
 
