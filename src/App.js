@@ -54,7 +54,7 @@ export default function App() {
 
   const pollStatus = (jobId) => {
     let attempts = 0;
-    const maxAttempts = 60; // 2 minutes timeout
+    const maxAttempts = 2000; // 2 minutes timeout
 
     const interval = setInterval(async () => {
       attempts++;
