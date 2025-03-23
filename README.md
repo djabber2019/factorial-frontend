@@ -2,7 +2,7 @@
 
 A professional factorial calculator built with React and deployed to GitHub Pages.##
 
-## Features $$$$
+## Features 
 - Calculate factorials for large numbers.
 - Download results as a file.
 - Built with React and React Icons.
