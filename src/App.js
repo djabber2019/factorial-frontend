@@ -1,39 +1,44 @@
-import './App.css';
-import { useState, useEffect, useRef } from 'react';
-import { FaLinkedin, FaDownload, FaSpinner } from 'react-icons/fa';
+import React, { useState, useEffect, useRef } from 'react';
+import { FaSpinner, FaDownload, FaLinkedin } from 'react-icons/fa';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import './App.css';
 
-const API_BASE = process.env.REACT_APP_API_URL || "https://factorial-backend.fly.dev/";
-const COMPUTATION_TIMEOUT = 300000; // 5 minutes timeout
+const API_BASE = "https://factorial-backend.fly.dev";
 
-export default function App() {
+const App = () => {
     const [input, setInput] = useState('');
-    const [status, setStatus] = useState('idle'); // idle | processing | complete | error
+    const [status, setStatus] = useState('idle');
     const [jobId, setJobId] = useState(null);
     const [computationTime, setComputationTime] = useState(0);
     const [progress, setProgress] = useState(0);
+    const [resultSize, setResultSize] = useState(0);
     const eventSourceRef = useRef(null);
     const timerRef = useRef(null);
-    const timeoutRef = useRef(null);
 
-    // Cleanup on unmount
+    const formatBytes = (bytes) => {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
     useEffect(() => {
         return () => {
             if (eventSourceRef.current) eventSourceRef.current.close();
             if (timerRef.current) clearInterval(timerRef.current);
-            if (timeoutRef.current) clearTimeout(timeoutRef.current);
         };
     }, []);
 
     const validateInput = (value) => {
-        const num = parseInt(value);
-        if (isNaN(num) || num <= 0 || num !== parseFloat(value)) {
-            toast.error('Please enter a valid positive integer (e.g., 5, 100)');
+        const num = parseInt(value, 10);
+        if (isNaN(num) || num <= 0 || !Number.isInteger(num)) {
+            toast.error('Please enter a valid positive integer');
             return false;
         }
         if (num > 1000000) {
-            toast.warning('For numbers > 1,000,000, computation may take very long');
+            toast.warning('Note: Large numbers may take significant time to compute');
         }
         return true;
     };
@@ -43,40 +48,26 @@ export default function App() {
         setJobId(null);
         setComputationTime(0);
         setProgress(0);
-        if (eventSourceRef.current) {
-            eventSourceRef.current.close();
-            eventSourceRef.current = null;
-        }
+        setResultSize(0);
+        if (eventSourceRef.current) eventSourceRef.current.close();
+        if (timerRef.current) clearInterval(timerRef.current);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validateInput(input)) return;
 
-        const num = parseInt(input);
+        const num = parseInt(input, 10);
         resetState();
         setStatus('processing');
-        
+
         try {
-            // Start timer
             const startTime = Date.now();
             timerRef.current = setInterval(() => {
                 setComputationTime(Math.floor((Date.now() - startTime) / 1000));
-                setProgress(prev => Math.min(prev + 0.5, 95)); // Slow progression until completion
             }, 1000);
 
-            // Set timeout
-            timeoutRef.current = setTimeout(() => {
-                if (status === 'processing') {
-                    setStatus('error');
-                    toast.error('Computation timed out after 5 minutes');
-                    eventSourceRef.current?.close();
-                    clearInterval(timerRef.current);
-                }
-            }, COMPUTATION_TIMEOUT);
-
-            // Start computation
-            const response = await fetch(`${API_BASE}compute`, {
+            const response = await fetch(`${API_BASE}/compute`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ n: num }),
@@ -87,33 +78,37 @@ export default function App() {
                 throw new Error(errorData.detail || 'Failed to start computation');
             }
 
-            const { job_id } = await response.json();
-            setJobId(job_id);
+            const data = await response.json();
+            setJobId(data.job_id);
 
-            // Set up SSE connection
-            eventSourceRef.current = new EventSource(`${API_BASE}stream-status/${job_id}`);
+            eventSourceRef.current = new EventSource(`${API_BASE}/stream-status/${data.job_id}`);
 
-            eventSourceRef.current.addEventListener('complete', () => {
-                setStatus("complete");
+            eventSourceRef.current.addEventListener('complete', (event) => {
+                const { result_size, message } = JSON.parse(event.data);
+                setStatus('complete');
                 setProgress(100);
+                setResultSize(result_size);
                 clearInterval(timerRef.current);
-                clearTimeout(timeoutRef.current);
-                eventSourceRef.current?.close();
-                toast.success('Computation completed!');
+                eventSourceRef.current.close();
+                toast.success(message || 'Computation completed!');
             });
 
-            eventSourceRef.current.addEventListener('error', (e) => {
-                setStatus("error");
+            eventSourceRef.current.addEventListener('progress', (event) => {
+                const { retry } = JSON.parse(event.data);
+                setProgress(Math.min(20 + (retry * 1.5), 95));
+            });
+
+            eventSourceRef.current.addEventListener('error', (event) => {
+                const { message } = JSON.parse(event.data);
+                setStatus('error');
                 clearInterval(timerRef.current);
-                clearTimeout(timeoutRef.current);
-                eventSourceRef.current?.close();
-                toast.error(e.data || 'Computation failed');
+                eventSourceRef.current.close();
+                toast.error(message || 'Computation failed');
             });
 
             eventSourceRef.current.onerror = () => {
-                setStatus("error");
+                setStatus('error');
                 clearInterval(timerRef.current);
-                clearTimeout(timeoutRef.current);
                 toast.error('Connection to server interrupted');
             };
 
@@ -121,28 +116,14 @@ export default function App() {
             console.error('Error:', err);
             setStatus('error');
             clearInterval(timerRef.current);
-            clearTimeout(timeoutRef.current);
-            eventSourceRef.current?.close();
+            if (eventSourceRef.current) eventSourceRef.current.close();
             toast.error(err.message || 'An unexpected error occurred');
         }
     };
 
-    const handleDownload = async () => {
+    const handleDownload = () => {
         if (!jobId) return;
-        
-        try {
-            // Trigger download via hidden link
-            const downloadUrl = `${API_BASE}download/${jobId}`;
-            const link = document.createElement('a');
-            link.href = downloadUrl;
-            link.setAttribute('download', `factorial_${input}.txt`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } catch (err) {
-            toast.error('Failed to download result');
-            console.error('Download error:', err);
-        }
+        window.open(`${API_BASE}/download/${jobId}`, '_blank');
     };
 
     return (
@@ -181,7 +162,7 @@ export default function App() {
                 <div className="status-container">
                     <div className="progress-bar">
                         <div 
-                            className="progress" 
+                            className="progress-fill" 
                             style={{ width: `${progress}%` }}
                         />
                     </div>
@@ -195,15 +176,17 @@ export default function App() {
 
             {status === 'complete' && (
                 <div className="result-container">
+                    <div className="result-meta">
+                        Computation completed in {computationTime} seconds
+                        <br />
+                        Result size: {formatBytes(resultSize)}
+                    </div>
                     <button 
                         onClick={handleDownload}
                         className="download-btn"
                     >
-                        <FaDownload /> Download Result (factorial_of_{input}.txt)
+                        <FaDownload /> Download Result (factorial_{input}.txt)
                     </button>
-                    <div className="completion-time">
-                        Computed in {computationTime} seconds
-                    </div>
                 </div>
             )}
 
@@ -222,4 +205,6 @@ export default function App() {
             </div>
         </div>
     );
-}
+};
+
+export default App;
