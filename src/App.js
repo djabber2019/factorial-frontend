@@ -1,119 +1,207 @@
 import './App.css';
-import { useState } from 'react';
-import { FaLinkedin, FaDownload } from 'react-icons/fa';
+import { useState, useEffect, useRef } from 'react';
+import { FaLinkedin, FaDownload, FaSpinner } from 'react-icons/fa';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-// Backend URL - Added trailing slash for consistency
-const API_BASE = "https://factorial-backend.fly.dev/";
+const API_BASE = process.env.REACT_APP_API_URL || "https://factorial-backend.fly.dev/";
 
 export default function App() {
     const [input, setInput] = useState('');
-    const [status, setStatus] = useState('idle');
-    const [downloadUrl, setDownloadUrl] = useState(null);
-    const [error, setError] = useState('');
+    const [status, setStatus] = useState('idle'); // idle | processing | complete | error
+    const [jobId, setJobId] = useState(null);
+    const [computationTime, setComputationTime] = useState(0);
+    const [progress, setProgress] = useState(0);
+    const eventSourceRef = useRef(null);
+    const timerRef = useRef(null);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
+            }
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+            }
+        };
+    }, []);
+
+    const validateInput = (value) => {
+        const num = parseInt(value);
+        if (isNaN(num) || num <= 0 || num !== parseFloat(value)) {
+            toast.error('Please enter a valid positive integer (e.g., 5, 100)');
+            return false;
+        }
+        if (num > 1000000) {
+            toast.warning('For numbers > 1,000,000, computation may take very long');
+        }
+        return true;
+    };
+
+    const resetState = () => {
+        setStatus('idle');
+        setJobId(null);
+        setComputationTime(0);
+        setProgress(0);
+        if (eventSourceRef.current) {
+            eventSourceRef.current.close();
+            eventSourceRef.current = null;
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!validateInput(input)) return;
+
         const num = parseInt(input);
-
-        if (isNaN(num) || num <= 0 || num !== parseFloat(input)) {
-            setError('Please enter a valid positive integer.');
-            return;
-        }
-
+        resetState();
         setStatus('processing');
-        setError('');
-
+        
         try {
-            const payload = { n: num };
-            console.log("Sending payload:", payload);
+            // Start timer
+            const startTime = Date.now();
+            timerRef.current = setInterval(() => {
+                setComputationTime(Math.floor((Date.now() - startTime) / 1000));
+                setProgress(prev => Math.min(prev + 1, 95)); // Cap at 95% until completion
+            }, 1000);
 
-            // Fixed endpoint URL construction
+            // Start computation
             const response = await fetch(`${API_BASE}compute`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: JSON.stringify({ n: num }),
             });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || 'Server request failed');
+                throw new Error(errorData.detail || 'Failed to start computation');
             }
 
             const { job_id } = await response.json();
-            console.log("Job ID:", job_id);
+            setJobId(job_id);
 
-            // Fixed SSE endpoint URL
-            const eventSource = new EventSource(`${API_BASE}stream-status/${job_id}`);
+            // Set up SSE connection
+            eventSourceRef.current = new EventSource(`${API_BASE}stream-status/${job_id}`);
 
-            eventSource.onmessage = (event) => {
+            eventSourceRef.current.onmessage = (event) => {
                 const status = event.data;
-                console.log("Received status:", status);
+                console.log('SSE Status:', status);
 
                 if (status === "complete") {
                     setStatus("complete");
-                    setDownloadUrl(`${API_BASE}download/${job_id}`);
-                    eventSource.close();
+                    setProgress(100);
+                    clearInterval(timerRef.current);
+                    eventSourceRef.current?.close();
+                    toast.success('Computation completed!');
                 } else if (status === "failed") {
-                    setError("Factorial computation failed. Please try again.");
-                    setStatus("error");
-                    eventSource.close();
+                    throw new Error('Computation failed on server');
                 }
             };
 
-            eventSource.onerror = () => {
-                console.log("SSE error occurred");
-                setError("Connection to server interrupted. Please try again.");
-                setStatus("error");
-                eventSource.close();
+            eventSourceRef.current.onerror = () => {
+                throw new Error('Connection to server interrupted');
             };
+
         } catch (err) {
-            console.log("Error:", err);
-            setError(err.message || "Failed to connect to server");
+            console.error('Error:', err);
             setStatus('error');
+            clearInterval(timerRef.current);
+            eventSourceRef.current?.close();
+            toast.error(err.message || 'An unexpected error occurred');
+        }
+    };
+
+    const handleDownload = async () => {
+        if (!jobId) return;
+        
+        try {
+            // In some browsers, the download might not trigger with fetch
+            // So we create a temporary link instead
+            const downloadUrl = `${API_BASE}download/${jobId}`;
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.setAttribute('download', `factorial_${input}.txt`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (err) {
+            toast.error('Failed to download result');
+            console.error('Download error:', err);
         }
     };
 
     return (
         <div className="container">
+            <ToastContainer position="top-right" autoClose={5000} />
+            
             <h1>Professional Factorial Calculator</h1>
+            <p className="subtitle">Calculate factorials of large numbers efficiently</p>
 
             <form onSubmit={handleSubmit}>
                 <input
                     type="number"
                     value={input}
-                    onChange={(e) => {
-                        setInput(e.target.value);
-                        setError('');
-                    }}
+                    onChange={(e) => setInput(e.target.value)}
                     min="1"
                     step="1"
-                    placeholder="Enter positive integer"
+                    placeholder="Enter a positive integer (e.g., 100)"
+                    disabled={status === 'processing'}
                 />
                 <button
                     type="submit"
-                    disabled={status === 'processing'}
-                    aria-label={status === 'processing' ? 'Calculating factorial' : 'Compute factorial'}
+                    disabled={status === 'processing' || !input.trim()}
+                    className={status === 'processing' ? 'processing' : ''}
                 >
-                    {status === 'processing' ? 'Calculating...' : 'Compute'}
+                    {status === 'processing' ? (
+                        <>
+                            <FaSpinner className="spinner" /> Calculating...
+                        </>
+                    ) : (
+                        'Compute Factorial'
+                    )}
                 </button>
             </form>
 
-            {error && <div className="error">{error}</div>}
-
             {status === 'processing' && (
-                <div className="loading">Calculating factorial... This may take up to 1 hour.</div>
+                <div className="status-container">
+                    <div className="progress-bar">
+                        <div 
+                            className="progress" 
+                            style={{ width: `${progress}%` }}
+                        />
+                    </div>
+                    <div className="status-text">
+                        Calculating factorial of {input}... ({computationTime}s elapsed)
+                        <br />
+                        <small>Job ID: {jobId}</small>
+                    </div>
+                </div>
             )}
 
             {status === 'complete' && (
-                <a href={downloadUrl} download className="download-btn">
-                    <FaDownload /> Download Result
-                </a>
+                <div className="result-container">
+                    <button 
+                        onClick={handleDownload}
+                        className="download-btn"
+                    >
+                        <FaDownload /> Download Result (factorial_of_{input}.txt)
+                    </button>
+                    <div className="completion-time">
+                        Computed in {computationTime} seconds
+                    </div>
+                </div>
             )}
 
             <div className="credits">
                 <h3>Created by Daef Al-Shaebi</h3>
                 <div className="social-links">
-                    <a href="https://www.linkedin.com/in/al-shaebi-daef-jaber-709894112" target="_blank" rel="noopener noreferrer">
+                    <a 
+                        href="https://www.linkedin.com/in/al-shaebi-daef-jaber-709894112" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        aria-label="LinkedIn profile"
+                    >
                         <FaLinkedin />
                     </a>
                 </div>
