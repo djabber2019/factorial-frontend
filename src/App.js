@@ -2,7 +2,7 @@ import './App.css';
 import { useState } from 'react';
 import { FaLinkedin, FaDownload } from 'react-icons/fa';
 
-
+// Backend URL
 const API_BASE = "https://factorial-backend.fly.dev";
 
 export default function App() {
@@ -48,9 +48,12 @@ export default function App() {
                 body: JSON.stringify(payload),
             });
 
+            console.log("Response status:", response.status);
+
             // Handle errors from the backend
             if (!response.ok) {
                 const errorData = await response.json();
+                console.log("Error data:", errorData);
                 throw new Error(errorData.detail || 'Server connection failed');
             }
 
@@ -79,12 +82,13 @@ export default function App() {
 
             // Handle SSE errors
             eventSource.onerror = () => {
+                console.log("SSE error occurred");
                 setError("Connection to server failed. Please check your network or try again later.");
                 setStatus("error");
                 eventSource.close(); // Close the connection
             };
         } catch (err) {
-            // Handle unexpected errors
+            console.log("Error:", err);
             setError(err.message);
             setStatus('error');
         }
