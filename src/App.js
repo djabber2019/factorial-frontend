@@ -5,6 +5,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || "https://factorial-backend.fly.dev/";
+const COMPUTATION_TIMEOUT = 300000; // 5 minutes timeout
 
 export default function App() {
     const [input, setInput] = useState('');
@@ -14,16 +15,14 @@ export default function App() {
     const [progress, setProgress] = useState(0);
     const eventSourceRef = useRef(null);
     const timerRef = useRef(null);
+    const timeoutRef = useRef(null);
 
     // Cleanup on unmount
     useEffect(() => {
         return () => {
-            if (eventSourceRef.current) {
-                eventSourceRef.current.close();
-            }
-            if (timerRef.current) {
-                clearInterval(timerRef.current);
-            }
+            if (eventSourceRef.current) eventSourceRef.current.close();
+            if (timerRef.current) clearInterval(timerRef.current);
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
         };
     }, []);
 
@@ -63,8 +62,18 @@ export default function App() {
             const startTime = Date.now();
             timerRef.current = setInterval(() => {
                 setComputationTime(Math.floor((Date.now() - startTime) / 1000));
-                setProgress(prev => Math.min(prev + 1, 95)); // Cap at 95% until completion
+                setProgress(prev => Math.min(prev + 0.5, 95)); // Slow progression until completion
             }, 1000);
+
+            // Set timeout
+            timeoutRef.current = setTimeout(() => {
+                if (status === 'processing') {
+                    setStatus('error');
+                    toast.error('Computation timed out after 5 minutes');
+                    eventSourceRef.current?.close();
+                    clearInterval(timerRef.current);
+                }
+            }, COMPUTATION_TIMEOUT);
 
             // Start computation
             const response = await fetch(`${API_BASE}compute`, {
@@ -84,29 +93,35 @@ export default function App() {
             // Set up SSE connection
             eventSourceRef.current = new EventSource(`${API_BASE}stream-status/${job_id}`);
 
-            eventSourceRef.current.onmessage = (event) => {
-                const status = event.data;
-                console.log('SSE Status:', status);
+            eventSourceRef.current.addEventListener('complete', () => {
+                setStatus("complete");
+                setProgress(100);
+                clearInterval(timerRef.current);
+                clearTimeout(timeoutRef.current);
+                eventSourceRef.current?.close();
+                toast.success('Computation completed!');
+            });
 
-                if (status === "complete") {
-                    setStatus("complete");
-                    setProgress(100);
-                    clearInterval(timerRef.current);
-                    eventSourceRef.current?.close();
-                    toast.success('Computation completed!');
-                } else if (status === "failed") {
-                    throw new Error('Computation failed on server');
-                }
-            };
+            eventSourceRef.current.addEventListener('error', (e) => {
+                setStatus("error");
+                clearInterval(timerRef.current);
+                clearTimeout(timeoutRef.current);
+                eventSourceRef.current?.close();
+                toast.error(e.data || 'Computation failed');
+            });
 
             eventSourceRef.current.onerror = () => {
-                throw new Error('Connection to server interrupted');
+                setStatus("error");
+                clearInterval(timerRef.current);
+                clearTimeout(timeoutRef.current);
+                toast.error('Connection to server interrupted');
             };
 
         } catch (err) {
             console.error('Error:', err);
             setStatus('error');
             clearInterval(timerRef.current);
+            clearTimeout(timeoutRef.current);
             eventSourceRef.current?.close();
             toast.error(err.message || 'An unexpected error occurred');
         }
@@ -116,8 +131,7 @@ export default function App() {
         if (!jobId) return;
         
         try {
-            // In some browsers, the download might not trigger with fetch
-            // So we create a temporary link instead
+            // Trigger download via hidden link
             const downloadUrl = `${API_BASE}download/${jobId}`;
             const link = document.createElement('a');
             link.href = downloadUrl;
