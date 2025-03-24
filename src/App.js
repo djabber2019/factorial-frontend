@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { FaLinkedin, FaDownload } from 'react-icons/fa';
 
 // Backend URL
-const API_BASE = "https://factorial-backend.fly.dev/";
+const API_BASE = "https://factorial-backend.fly.dev";
 
 export default function App() {
     const [input, setInput] = useState(''); // User input for the factorial number
