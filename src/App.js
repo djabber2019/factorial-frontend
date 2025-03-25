@@ -7,204 +7,247 @@ import './App.css';
 const API_BASE = "https://factorial-backend.fly.dev";
 
 const App = () => {
-    const [input, setInput] = useState('');
-    const [status, setStatus] = useState('idle');
-    const [jobId, setJobId] = useState(null);
-    const [computationTime, setComputationTime] = useState(0);
-    const [progress, setProgress] = useState(0);
-    const [resultSize, setResultSize] = useState(0);
-    const eventSourceRef = useRef(null);
-    const timerRef = useRef(null);
+  const [input, setInput] = useState('');
+  const [status, setStatus] = useState('idle');
+  const [jobId, setJobId] = useState(null);
+  const [computationTime, setComputationTime] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [resultSize, setResultSize] = useState(0);
+  const [isCancelled, setIsCancelled] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState(null);
+  const eventSourceRef = useRef(null);
+  const timerRef = useRef(null);
 
-    const formatBytes = (bytes) => {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  const MAX_WAIT_TIME = 3600;
+
+  const formatBytes = (bytes) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+  };
+
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) eventSourceRef.current.close();
+      if (timerRef.current) clearInterval(timerRef.current);
     };
+  }, []);
 
-    useEffect(() => {
-        return () => {
-            if (eventSourceRef.current) eventSourceRef.current.close();
-            if (timerRef.current) clearInterval(timerRef.current);
-        };
-    }, []);
+  const validateInput = (value) => {
+    const num = parseInt(value, 10);
+    if (isNaN(num) || num <= 0 || !Number.isInteger(num)) {
+      toast.error('Please enter a valid positive integer');
+      return false;
+    }
+    if (num > 1000000) {
+      toast.warning('Note: Large numbers may take significant time to compute');
+    }
+    return true;
+  };
 
-    const validateInput = (value) => {
-        const num = parseInt(value, 10);
-        if (isNaN(num) || num <= 0 || !Number.isInteger(num)) {
-            toast.error('Please enter a valid positive integer');
-            return false;
+  const resetState = () => {
+    setStatus('idle');
+    setJobId(null);
+    setComputationTime(0);
+    setProgress(0);
+    setResultSize(0);
+    setIsCancelled(false);
+    setLastUpdateTime(null);
+    if (eventSourceRef.current) eventSourceRef.current.close();
+    if (timerRef.current) clearInterval(timerRef.current);
+  };
+
+  const handleCancel = () => {
+    setIsCancelled(true);
+    resetState();
+    toast.info('Computation cancelled');
+  };
+
+  const fetchWithTimeout = async (url, options, timeout = 30000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    
+    clearTimeout(id);
+    return response;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateInput(input)) return;
+
+    const num = parseInt(input, 10);
+    resetState();
+    setStatus('processing');
+
+    try {
+      const startTime = Date.now();
+      timerRef.current = setInterval(() => {
+        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+        setComputationTime(elapsedSeconds);
+
+        if (elapsedSeconds >= MAX_WAIT_TIME) {
+          resetState();
+          toast.error('Maximum computation time (1 hour) exceeded');
         }
-        if (num > 1000000) {
-            toast.warning('Note: Large numbers may take significant time to compute');
+
+        if (lastUpdateTime && (Date.now() - lastUpdateTime) > 60000) {
+          resetState();
+          toast.error('Connection to server lost');
         }
-        return true;
-    };
+      }, 1000);
 
-    const resetState = () => {
-        setStatus('idle');
-        setJobId(null);
-        setComputationTime(0);
-        setProgress(0);
-        setResultSize(0);
-        if (eventSourceRef.current) eventSourceRef.current.close();
-        if (timerRef.current) clearInterval(timerRef.current);
-    };
+      const response = await fetchWithTimeout(`${API_BASE}/compute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ n: num }),
+      }, 30000);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!validateInput(input)) return;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to start computation');
+      }
 
-        const num = parseInt(input, 10);
-        resetState();
-        setStatus('processing');
+      const data = await response.json();
+      setJobId(data.job_id);
 
-        try {
-            const startTime = Date.now();
-            timerRef.current = setInterval(() => {
-                setComputationTime(Math.floor((Date.now() - startTime) / 1000));
-            }, 1000);
+      eventSourceRef.current = new EventSource(`${API_BASE}/stream-status/${data.job_id}`);
 
-            const response = await fetch(`${API_BASE}/compute`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ n: num }),
-            });
+      eventSourceRef.current.addEventListener('complete', (event) => {
+        const { result_size, message } = JSON.parse(event.data);
+        setStatus('complete');
+        setProgress(100);
+        setResultSize(result_size);
+        clearInterval(timerRef.current);
+        eventSourceRef.current.close();
+        toast.success(message || 'Computation completed!');
+      });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || 'Failed to start computation');
-            }
+      eventSourceRef.current.addEventListener('progress', (event) => {
+        const { retry } = JSON.parse(event.data);
+        setProgress(Math.min(20 + (retry * 1.5), 95));
+        setLastUpdateTime(Date.now());
+      });
 
-            const data = await response.json();
-            setJobId(data.job_id);
+      eventSourceRef.current.addEventListener('error', (event) => {
+        const { message } = JSON.parse(event.data);
+        setStatus('error');
+        clearInterval(timerRef.current);
+        eventSourceRef.current.close();
+        toast.error(message || 'Computation failed');
+      });
 
-            eventSourceRef.current = new EventSource(`${API_BASE}/stream-status/${data.job_id}`);
+      eventSourceRef.current.onerror = () => {
+        setStatus('error');
+        clearInterval(timerRef.current);
+        toast.error('Connection to server interrupted');
+      };
 
-            eventSourceRef.current.addEventListener('complete', (event) => {
-                const { result_size, message } = JSON.parse(event.data);
-                setStatus('complete');
-                setProgress(100);
-                setResultSize(result_size);
-                clearInterval(timerRef.current);
-                eventSourceRef.current.close();
-                toast.success(message || 'Computation completed!');
-            });
+    } catch (err) {
+      console.error('Error:', err);
+      setStatus('error');
+      clearInterval(timerRef.current);
+      if (eventSourceRef.current) eventSourceRef.current.close();
+      toast.error(err.name === 'AbortError' ? 'Request timed out' : err.message || 'An unexpected error occurred');
+    }
+  };
 
-            eventSourceRef.current.addEventListener('progress', (event) => {
-                const { retry } = JSON.parse(event.data);
-                setProgress(Math.min(20 + (retry * 1.5), 95));
-            });
+  const handleDownload = () => {
+    if (!jobId) return;
+    window.open(`${API_BASE}/download/${jobId}`, '_blank');
+  };
 
-            eventSourceRef.current.addEventListener('error', (event) => {
-                const { message } = JSON.parse(event.data);
-                setStatus('error');
-                clearInterval(timerRef.current);
-                eventSourceRef.current.close();
-                toast.error(message || 'Computation failed');
-            });
+  return (
+    <div className="container">
+      <ToastContainer position="top-right" autoClose={5000} />
+      
+      <h1>Professional Factorial Calculator</h1>
+      <p className="subtitle">Calculate factorials of large numbers efficiently</p>
 
-            eventSourceRef.current.onerror = () => {
-                setStatus('error');
-                clearInterval(timerRef.current);
-                toast.error('Connection to server interrupted');
-            };
+      <form onSubmit={handleSubmit}>
+        <input
+          type="number"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          min="1"
+          step="1"
+          placeholder="Enter a positive integer (e.g., 100)"
+          disabled={status === 'processing'}
+        />
+        <button
+          type="submit"
+          disabled={status === 'processing' || !input.trim()}
+          className={status === 'processing' ? 'processing' : ''}
+        >
+          {status === 'processing' ? (
+            <>
+              <FaSpinner className="spinner" /> Calculating...
+            </>
+          ) : (
+            'Compute Factorial'
+          )}
+        </button>
+      </form>
 
-        } catch (err) {
-            console.error('Error:', err);
-            setStatus('error');
-            clearInterval(timerRef.current);
-            if (eventSourceRef.current) eventSourceRef.current.close();
-            toast.error(err.message || 'An unexpected error occurred');
-        }
-    };
-
-    const handleDownload = () => {
-        if (!jobId) return;
-        window.open(`${API_BASE}/download/${jobId}`, '_blank');
-    };
-
-    return (
-        <div className="container">
-            <ToastContainer position="top-right" autoClose={5000} />
-            
-            <h1>Professional Factorial Calculator</h1>
-            <p className="subtitle">Calculate factorials of large numbers efficiently</p>
-
-            <form onSubmit={handleSubmit}>
-                <input
-                    type="number"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    min="1"
-                    step="1"
-                    placeholder="Enter a positive integer (e.g., 100)"
-                    disabled={status === 'processing'}
-                />
-                <button
-                    type="submit"
-                    disabled={status === 'processing' || !input.trim()}
-                    className={status === 'processing' ? 'processing' : ''}
-                >
-                    {status === 'processing' ? (
-                        <>
-                            <FaSpinner className="spinner" /> Calculating...
-                        </>
-                    ) : (
-                        'Compute Factorial'
-                    )}
-                </button>
-            </form>
-
-            {status === 'processing' && (
-                <div className="status-container">
-                    <div className="progress-bar">
-                        <div 
-                            className="progress-fill" 
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                    <div className="status-text">
-                        Calculating factorial of {input}... ({computationTime}s elapsed)
-                        <br />
-                        <small>Job ID: {jobId}</small>
-                    </div>
-                </div>
-            )}
-
-            {status === 'complete' && (
-                <div className="result-container">
-                    <div className="result-meta">
-                        Computation completed in {computationTime} seconds
-                        <br />
-                        Result size: {formatBytes(resultSize)}
-                    </div>
-                    <button 
-                        onClick={handleDownload}
-                        className="download-btn"
-                    >
-                        <FaDownload /> Download Result (factorial_{input}.txt)
-                    </button>
-                </div>
-            )}
-
-            <div className="credits">
-                <h3>Created by Daef Al-Shaebi</h3>
-                <div className="social-links">
-                    <a 
-                        href="https://www.linkedin.com/in/al-shaebi-daef-jaber-709894112" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        aria-label="LinkedIn profile"
-                    >
-                        <FaLinkedin />
-                    </a>
-                </div>
-            </div>
+      {status === 'processing' && (
+        <div className="status-container">
+          <div className="progress-bar">
+            <div 
+              className="progress-fill" 
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <div className="status-text">
+            Calculating factorial of {input}... ({computationTime}s elapsed)
+            <br />
+            <small>Job ID: {jobId}</small>
+          </div>
+          <button 
+            onClick={handleCancel}
+            className="cancel-btn"
+          >
+            Cancel Computation
+          </button>
         </div>
-    );
+      )}
+
+      {status === 'complete' && (
+        <div className="result-container">
+          <div className="result-meta">
+            Computation completed in {computationTime} seconds
+            <br />
+            Result size: {formatBytes(resultSize)}
+          </div>
+          <button 
+            onClick={handleDownload}
+            className="download-btn"
+          >
+            <FaDownload /> Download Result (factorial_{input}.txt)
+          </button>
+        </div>
+      )}
+
+      <div className="credits">
+        <h3>Created by Daef Al-Shaebi</h3>
+        <div className="social-links">
+          <a 
+            href="https://www.linkedin.com/in/al-shaebi-daef-jaber-709894112" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            aria-label="LinkedIn profile"
+          >
+            <FaLinkedin />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default App;
