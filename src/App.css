@@ -1,4 +1,3 @@
-/* Base Styles */
 body {
   font-family: 'Segoe UI', sans-serif;
   background: #f5f7fa;
@@ -24,7 +23,6 @@ body {
   gap: 10px;
 }
 
-/* Card Styles */
 .compute-card {
   background: white;
   border-radius: 10px;
@@ -69,7 +67,6 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Progress Indicators */
 .progress-container {
   margin: 1.5rem 0;
 }
@@ -88,7 +85,6 @@ button:disabled {
   color: #7f8c8d;
 }
 
-/* Results Section */
 .result-container {
   margin-top: 1.5rem;
   animation: fadeIn 0.5s;
@@ -118,7 +114,6 @@ button:disabled {
   background: #219653;
 }
 
-/* Error State */
 .error-container {
   margin-top: 1.5rem;
   text-align: center;
@@ -131,17 +126,36 @@ button:disabled {
   margin-bottom: 1rem;
 }
 
-/* Animations */
+.connection-status {
+  margin: 10px 0;
+  font-size: 0.9em;
+}
+
+.connected {
+  color: #27ae60;
+}
+
+.disconnected {
+  color: #e74c3c;
+  animation: pulse 1.5s infinite;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.spin {
-  animation: spin 1s linear infinite;
-}
-
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
 }
