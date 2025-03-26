@@ -2,7 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaSpinner, FaDownload, FaInfoCircle, FaExclamationTriangle } from 'react-icons/fa';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import './App.css'; // Make sure this CSS file exists with the styles below
+import './App.css';
+
+const API_BASE = process.env.NODE_ENV === 'development' 
+  ? 'http://localhost:8000' 
+  : 'https://factorial-backend.fly.dev';
 
 export default function App() {
   const [input, setInput] = useState('');
@@ -11,14 +15,15 @@ export default function App() {
   const [progress, setProgress] = useState(0);
   const [resultSize, setResultSize] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
+  const [isConnected, setIsConnected] = useState(false);
   const eventSourceRef = useRef(null);
   const timerRef = useRef(null);
+  const computationStartRef = useRef(null);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (eventSourceRef.current) eventSourceRef.current.close();
-      if (timerRef.current) clearInterval(timerRef.current);
+      eventSourceRef.current?.close();
+      clearInterval(timerRef.current);
     };
   }, []);
 
@@ -31,9 +36,9 @@ export default function App() {
     setStatus('processing');
     setProgress(0);
     setTimeElapsed(0);
+    setIsConnected(false);
     computationStartRef.current = Date.now();
 
-    // Start timer
     timerRef.current = setInterval(() => {
       setTimeElapsed(Math.floor((Date.now() - computationStartRef.current) / 1000));
     }, 1000);
@@ -44,6 +49,8 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ n: parseInt(input) })
       });
+      
+      if (!res.ok) throw new Error(await res.text());
       
       const { job_id } = await res.json();
       setJobId(job_id);
@@ -59,36 +66,49 @@ export default function App() {
     const es = new EventSource(`${API_BASE}/stream-status/${jobId}`);
     eventSourceRef.current = es;
 
+    es.onopen = () => {
+      setIsConnected(true);
+      setProgress(10);
+    };
+
     es.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      if (data.event === 'complete') {
-        handleCompletion(data.size);
-      } else if (data.event === 'progress') {
-        setProgress(prev => Math.min(prev + 10, 90));
+      try {
+        const data = JSON.parse(e.data);
+        if (data.event === 'complete') {
+          handleCompletion(data.size);
+        } else if (data.event === 'progress') {
+          setProgress(prev => Math.min(prev + 5, 95));
+        }
+      } catch (err) {
+        console.error("SSE Error:", err);
       }
     };
 
     es.onerror = () => {
-      es.close();
-      if (status === 'processing') {
-        toast.warn("Connection interrupted - retrying...");
-        setTimeout(() => setupEventStream(jobId), 2000);
+      setIsConnected(false);
+      if (eventSourceRef.current?.readyState === EventSource.CLOSED) {
+        setTimeout(() => status === 'processing' && setupEventStream(jobId), 2000);
       }
     };
   };
 
   const handleCompletion = (size) => {
-    clearInterval(timerRef.current);
+    cleanupResources();
     setStatus('complete');
     setProgress(100);
     setResultSize(size);
-    toast.success(`Computed in ${timeElapsed}s!`);
+    toast.success(`Computation completed in ${timeElapsed}s`);
   };
 
   const handleError = (error) => {
-    clearInterval(timerRef.current);
+    cleanupResources();
     setStatus('error');
     toast.error(error.message || "Computation failed");
+  };
+
+  const cleanupResources = () => {
+    eventSourceRef.current?.close();
+    clearInterval(timerRef.current);
   };
 
   return (
@@ -120,13 +140,22 @@ export default function App() {
         </div>
 
         {status === 'processing' && (
-          <div className="progress-container">
-            <div className="progress-bar" style={{ width: `${progress}%` }}></div>
-            <div className="progress-info">
-              <span>Elapsed: {timeElapsed}s</span>
-              <span>{progress}%</span>
+          <>
+            <div className="connection-status">
+              {isConnected ? (
+                <span className="connected">● Connected</span>
+              ) : (
+                <span className="disconnected">● Connecting...</span>
+              )}
             </div>
-          </div>
+            <div className="progress-container">
+              <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+              <div className="progress-info">
+                <span>Elapsed: {timeElapsed}s</span>
+                <span>{progress}%</span>
+              </div>
+            </div>
+          </>
         )}
 
         {status === 'complete' && (
