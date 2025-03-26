@@ -5,8 +5,9 @@ import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
 const API_BASE = "https://factorial-backend.fly.dev";
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 2000; // 2 seconds
+const MAX_RETRIES = 5; // Increased from 3 to 5
+const RETRY_DELAY_BASE = 2000; // Base delay of 2 seconds
+const SSE_RECONNECT_DELAY = 5000; // Wait 5 seconds before reconnecting SSE
 
 export default function App() {
   const [input, setInput] = useState('');
@@ -19,8 +20,8 @@ export default function App() {
   const eventSourceRef = useRef(null);
   const timerRef = useRef(null);
   const computationStartRef = useRef(null);
+  const retryTimeoutRef = useRef(null);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       cleanupResources();
@@ -36,10 +37,14 @@ export default function App() {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
   };
 
   const handleError = (error, message = 'An error occurred') => {
-    console.error(error);
+    console.error(message, error);
     cleanupResources();
     setStatus('error');
     toast.error(`${message}: ${error.message || error}`);
@@ -57,14 +62,12 @@ export default function App() {
     }
 
     try {
-      // Reset state
       setStatus('processing');
       setProgress(0);
       setTimeElapsed(0);
       setRetryCount(0);
       computationStartRef.current = Date.now();
 
-      // Start timer
       timerRef.current = setInterval(() => {
         setTimeElapsed(Math.floor((Date.now() - computationStartRef.current) / 1000));
       }, 1000);
@@ -87,7 +90,8 @@ export default function App() {
       });
 
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${res.status}`);
       }
 
       const data = await res.json();
@@ -96,7 +100,12 @@ export default function App() {
     } catch (error) {
       if (attempt < MAX_RETRIES) {
         setRetryCount(attempt);
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * attempt));
+        await new Promise(resolve => {
+          retryTimeoutRef.current = setTimeout(
+            resolve, 
+            RETRY_DELAY_BASE * Math.pow(2, attempt - 1) // Exponential backoff
+          );
+        });
         await initiateComputation(num, attempt + 1);
       } else {
         throw error;
@@ -105,13 +114,13 @@ export default function App() {
   };
 
   const setupEventStream = (jobId) => {
-    cleanupResources(); // Cleanup any existing connection
+    cleanupResources();
 
     eventSourceRef.current = new EventSource(`${API_BASE}/stream-status/${jobId}`);
 
     eventSourceRef.current.onopen = () => {
       console.log("SSE connection opened");
-      setProgress(10); // Initial progress when connection established
+      setProgress(10);
     };
 
     eventSourceRef.current.onmessage = (e) => {
@@ -120,18 +129,27 @@ export default function App() {
         if (eventData.event === 'complete') {
           handleCompletion(eventData.data.size);
         } else if (eventData.event === 'progress') {
-          setProgress(prev => Math.min(prev + 5, 95)); // Increment progress more conservatively
+          setProgress(prev => Math.min(prev + 2, 95)); // Smaller increments
         } else if (eventData.event === 'timeout') {
           handleError(new Error("Computation timed out on server"));
         }
       } catch (error) {
-        handleError(error, "Error processing server event");
+        console.error("Error processing event:", error);
       }
     };
 
     eventSourceRef.current.onerror = () => {
-      if (eventSourceRef.current.readyState === EventSource.CLOSED) {
-        handleError(new Error("Connection to server lost"));
+      if (eventSourceRef.current?.readyState === EventSource.CLOSED) {
+        console.log("SSE connection closed");
+        if (status === 'processing') {
+          // Only attempt reconnect if we're still processing
+          setTimeout(() => {
+            if (jobId && status === 'processing') {
+              console.log("Attempting SSE reconnection...");
+              setupEventStream(jobId);
+            }
+          }, SSE_RECONNECT_DELAY);
+        }
       }
     };
   };
@@ -155,7 +173,7 @@ export default function App() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             min="1"
-            placeholder="Enter positive integer (e.g., 100000)"
+            placeholder="Enter positive integer"
             disabled={status === 'processing'}
           />
           <button 
@@ -175,6 +193,7 @@ export default function App() {
             <div className="progress-info">
               <span>Elapsed: {timeElapsed}s</span>
               <span>{progress}%</span>
+              {retryCount > 0 && <span className="retry-notice">Reconnecting to backend...</span>}
             </div>
           </div>
         )}
