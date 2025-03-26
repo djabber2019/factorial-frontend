@@ -4,7 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
-const API_BASE = process.env.NODE_ENV === 'development' 
+const API_BASE = window.location.hostname === 'localhost' 
   ? 'http://localhost:8000' 
   : 'https://factorial-backend.fly.dev';
 
@@ -13,12 +13,9 @@ export default function App() {
   const [jobId, setJobId] = useState(null);
   const [status, setStatus] = useState('idle');
   const [progress, setProgress] = useState(0);
-  const [resultSize, setResultSize] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [isConnected, setIsConnected] = useState(false);
   const eventSourceRef = useRef(null);
   const timerRef = useRef(null);
-  const computationStartRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -36,27 +33,30 @@ export default function App() {
     setStatus('processing');
     setProgress(0);
     setTimeElapsed(0);
-    setIsConnected(false);
-    computationStartRef.current = Date.now();
-
+    
     timerRef.current = setInterval(() => {
-      setTimeElapsed(Math.floor((Date.now() - computationStartRef.current) / 1000));
+      setTimeElapsed(prev => prev + 1);
     }, 1000);
 
     try {
-      const res = await fetch(`${API_BASE}/compute`, {
+      const response = await fetch(`${API_BASE}/compute`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ n: parseInt(input) })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ n: parseInt(input) }),
       });
-      
-      if (!res.ok) throw new Error(await res.text());
-      
-      const { job_id } = await res.json();
-      setJobId(job_id);
-      setupEventStream(job_id);
-    } catch (err) {
-      handleError(err);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Request failed');
+      }
+
+      const data = await response.json();
+      setJobId(data.job_id);
+      setupEventStream(data.job_id);
+    } catch (error) {
+      handleError(error);
     }
   };
 
@@ -66,49 +66,36 @@ export default function App() {
     const es = new EventSource(`${API_BASE}/stream-status/${jobId}`);
     eventSourceRef.current = es;
 
-    es.onopen = () => {
-      setIsConnected(true);
-      setProgress(10);
-    };
-
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
         if (data.event === 'complete') {
           handleCompletion(data.size);
         } else if (data.event === 'progress') {
-          setProgress(prev => Math.min(prev + 5, 95));
+          setProgress(prev => Math.min(prev + 10, 90));
         }
       } catch (err) {
-        console.error("SSE Error:", err);
+        console.error("Error parsing event:", err);
       }
     };
 
     es.onerror = () => {
-      setIsConnected(false);
-      if (eventSourceRef.current?.readyState === EventSource.CLOSED) {
-        setTimeout(() => status === 'processing' && setupEventStream(jobId), 2000);
-      }
+      es.close();
+      handleError(new Error("Connection lost"));
     };
   };
 
   const handleCompletion = (size) => {
-    cleanupResources();
+    clearInterval(timerRef.current);
     setStatus('complete');
     setProgress(100);
-    setResultSize(size);
     toast.success(`Computation completed in ${timeElapsed}s`);
   };
 
   const handleError = (error) => {
-    cleanupResources();
-    setStatus('error');
-    toast.error(error.message || "Computation failed");
-  };
-
-  const cleanupResources = () => {
-    eventSourceRef.current?.close();
     clearInterval(timerRef.current);
+    setStatus('error');
+    toast.error(error.message);
   };
 
   return (
@@ -131,7 +118,6 @@ export default function App() {
           <button
             onClick={handleCompute}
             disabled={status === 'processing' || !input}
-            className={status === 'processing' ? 'processing' : ''}
           >
             {status === 'processing' ? (
               <><FaSpinner className="spin" /> Computing...</>
@@ -140,56 +126,35 @@ export default function App() {
         </div>
 
         {status === 'processing' && (
-          <>
-            <div className="connection-status">
-              {isConnected ? (
-                <span className="connected">● Connected</span>
-              ) : (
-                <span className="disconnected">● Connecting...</span>
-              )}
+          <div className="progress-container">
+            <div className="progress-bar" style={{ width: `${progress}%` }} />
+            <div className="progress-info">
+              <span>Elapsed: {timeElapsed}s</span>
+              <span>{progress}%</span>
             </div>
-            <div className="progress-container">
-              <div className="progress-bar" style={{ width: `${progress}%` }}></div>
-              <div className="progress-info">
-                <span>Elapsed: {timeElapsed}s</span>
-                <span>{progress}%</span>
-              </div>
-            </div>
-          </>
+          </div>
         )}
 
-        {status === 'complete' && (
-          <div className="result-container">
-            <div className="result-meta">
-              <span>Computation time: {timeElapsed}s</span>
-              <span>Result size: {(resultSize / 1024).toFixed(1)} KB</span>
-            </div>
-            <a
-              href={`${API_BASE}/download/${jobId}`}
-              className="download-button"
-              download={`factorial_${input}.txt`}
-            >
-              <FaDownload /> Download Result
-            </a>
-          </div>
+        {status === 'complete' && jobId && (
+          <a
+            href={`${API_BASE}/download/${jobId}`}
+            className="download-button"
+            download
+          >
+            <FaDownload /> Download Result
+          </a>
         )}
 
         {status === 'error' && (
           <div className="error-container">
-            <FaExclamationTriangle className="error-icon" />
-            <p>Something went wrong. Please try again.</p>
-            <button onClick={handleCompute}>Retry</button>
+            <button onClick={handleCompute}>
+              <FaExclamationTriangle /> Retry
+            </button>
           </div>
         )}
       </div>
 
-      <ToastContainer
-        position="bottom-right"
-        autoClose={5000}
-        newestOnTop
-        closeOnClick
-        pauseOnFocusLoss
-      />
+      <ToastContainer position="bottom-right" />
     </div>
   );
 }
