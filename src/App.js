@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaSpinner, FaDownload, FaInfoCircle, FaExclamationTriangle } from 'react-icons/fa';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
+import  "./App.css";
 const API_BASE = "https://factorial-backend.fly.dev";
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000;
