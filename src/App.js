@@ -5,7 +5,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8000';
+const API_BASE = process.env.REACT_APP_API_BASE || 'https://factorial-backend.sliplane.app';
 const PAYMENT_THRESHOLD = 1000;
 const PAYMENT_AMOUNT_USD = 3.99;
 
