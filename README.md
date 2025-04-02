@@ -1,4 +1,4 @@
-####### Factorial Calculator
+###### Factorial Calculator
 
 A professional factorial calculator built with React and deployed to GitHub Pages
 
