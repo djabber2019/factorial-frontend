@@ -1,15 +1,22 @@
+/* ===== Base Styles ===== */
 body {
-  font-family: 'Segoe UI', sans-serif;
-  background: #f5f7fa;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+  color: #333;
+  line-height: 1.6;
   margin: 0;
-  padding: 20px;
+  padding: 0;
 }
 
 .app-container {
   max-width: 800px;
   margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
+/* ===== Header Styles ===== */
 .app-header {
   text-align: center;
   margin-bottom: 2rem;
@@ -17,132 +24,213 @@ body {
 
 .app-header h1 {
   color: #2c3e50;
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 0.5rem;
 }
 
-.compute-card {
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+.app-header p {
+  color: #7f8c8d;
+  font-size: 1.1rem;
+  margin-top: 0;
+}
+
+/* ===== Payment Modals ===== */
+.payment-modal {
+  background: #ffffff;
+  border-radius: 12px;
   padding: 2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  margin: 2rem 0;
+  border: 1px solid #e0e0e0;
 }
 
-.input-group {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 1.5rem;
+.payment-modal h3 {
+  color: #003087; /* PayPal blue */
+  margin-top: 0;
+  font-size: 1.5rem;
+  text-align: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-input[type="number"] {
-  flex: 1;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 16px;
-}
-
-button {
-  background: #3498db;
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background 0.3s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-button:hover {
-  background: #2980b9;
-}
-
-button:disabled {
-  background: #95a5a6;
-  cursor: not-allowed;
-}
-
-.progress-container {
+.payment-instructions {
   margin: 1.5rem 0;
 }
 
+.payment-instructions p {
+  margin: 1rem 0;
+  text-align: center;
+  color: #555;
+}
+
+/* ===== Compute Card Styles ===== */
+.compute-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.input-group {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.payment-tooltip {
+  position: absolute;
+  top: -35px;
+  right: 0;
+  background: #003087;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.payment-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 15px;
+  border-width: 8px;
+  border-style: solid;
+  border-color: #003087 transparent transparent transparent;
+}
+
+/* ===== Input & Button Styles ===== */
+input[type="number"] {
+  width: 100%;
+  padding: 0.8rem;
+  margin: 0.8rem 0;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+input[type="number"]:focus {
+  outline: none;
+  border-color: #003087;
+  box-shadow: 0 0 0 3px rgba(0, 48, 135, 0.1);
+}
+
+button {
+  background-color: #003087;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+button:hover:not(:disabled) {
+  background-color: #00256b;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.retry-button {
+  background-color: #e74c3c;
+}
+
+.retry-button:hover {
+  background-color: #c0392b;
+}
+
+.download-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  margin-top: 1rem;
+  background-color: #27ae60;
+}
+
+.download-button:hover {
+  background-color: #219653;
+}
+
+/* ===== Progress Indicator ===== */
+.progress-container {
+  margin: 1.5rem 0;
+  background: #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
 .progress-bar {
-  height: 8px;
-  background: #3498db;
-  border-radius: 4px;
-  transition: width 0.3s;
+  height: 10px;
+  background: linear-gradient(90deg, #0070ba, #00c4ff);
+  transition: width 0.3s ease;
 }
 
 .progress-info {
   display: flex;
   justify-content: space-between;
-  margin-top: 5px;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
   color: #7f8c8d;
 }
 
-.result-container {
-  margin-top: 1.5rem;
-  animation: fadeIn 0.5s;
+/* ===== PayPal Button Container ===== */
+.paypal-button-container {
+  margin: 1.5rem 0;
 }
 
-.result-meta {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-  color: #34495e;
-}
-
-.download-button {
-  display: inline-block;
-  background: #27ae60;
-  color: white;
-  padding: 12px 20px;
-  border-radius: 5px;
-  text-decoration: none;
-  transition: background 0.3s;
+.payment-methods-notice {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  margin-top: 1rem;
+  color: #7f8c8d;
+  font-size: 0.9rem;
 }
 
-.download-button:hover {
-  background: #219653;
-}
-
-.error-container {
-  margin-top: 1.5rem;
+/* ===== Status Messages ===== */
+.status-message {
+  padding: 0.8rem;
+  border-radius: 8px;
+  margin-top: 1rem;
   text-align: center;
-  color: #e74c3c;
-  animation: fadeIn 0.5s;
 }
 
-.error-icon {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-}
-
-.connection-status {
-  margin: 10px 0;
-  font-size: 0.9em;
-}
-
-.connected {
+.status-success {
   color: #27ae60;
+  background: #e8f5e9;
 }
 
-.disconnected {
+.status-error {
   color: #e74c3c;
-  animation: pulse 1.5s infinite;
+  background: #fdecea;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+.status-processing {
+  color: #3498db;
+  background: #e3f2fd;
+}
+
+/* ===== Spinner Animation ===== */
+.spin {
+  animation: spin 1s linear infinite;
+  display: inline-block;
 }
 
 @keyframes spin {
@@ -150,12 +238,87 @@ button:disabled {
   to { transform: rotate(360deg); }
 }
 
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
+/* ===== Responsive Design ===== */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 1.5rem;
+  }
+
+  .compute-card, .payment-modal {
+    padding: 1.5rem;
+  }
+
+  .app-header h1 {
+    font-size: 1.8rem;
+  }
 }
 
-.spin {
-  animation: spin 1s linear infinite;
+@media (max-width: 480px) {
+  .app-container {
+    padding: 1rem;
+  }
+
+  .compute-card, .payment-modal {
+    padding: 1.2rem;
+  }
+
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+
+  input[type="number"], button {
+    padding: 0.7rem;
+  }
+}
+
+/* ===== Dark Mode Support ===== */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #121212;
+    color: #f1f1f1;
+  }
+
+  .compute-card, .payment-modal {
+    background: #1e1e1e;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border-color: #333;
+  }
+
+  input[type="number"] {
+    background: #2d2d2d;
+    border-color: #444;
+    color: #f1f1f1;
+  }
+
+  .progress-container {
+    background: #2d2d2d;
+  }
+
+  .payment-tooltip {
+    background: #0070ba;
+  }
+
+  .payment-tooltip::after {
+    border-top-color: #0070ba;
+  }
+}
+
+/* ===== PayPal Button Overrides ===== */
+.paypal-buttons {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+/* ===== Toast Notifications ===== */
+.Toastify__toast {
+  border-radius: 8px !important;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+}
+
+.Toastify__toast--success {
+  background: #27ae60 !important;
+}
+
+.Toastify__toast--error {
+  background: #e74c3c !important;
 }

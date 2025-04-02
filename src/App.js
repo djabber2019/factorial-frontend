@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaSpinner, FaDownload, FaInfoCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { FaSpinner, FaDownload, FaInfoCircle } from 'react-icons/fa';
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
-const API_BASE = window.location.hostname === 'localhost' 
-  ? 'http://localhost:8000' 
-  : 'https://factorial-backend.fly.dev';
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:8000';
+const PAYMENT_THRESHOLD = 1000;
+const PAYMENT_AMOUNT_USD = 3.99;
 
 export default function App() {
   const [input, setInput] = useState('');
@@ -14,6 +15,7 @@ export default function App() {
   const [status, setStatus] = useState('idle');
   const [progress, setProgress] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
+  const [paymentInfo, setPaymentInfo] = useState(null);
   const eventSourceRef = useRef(null);
   const timerRef = useRef(null);
 
@@ -25,33 +27,34 @@ export default function App() {
   }, []);
 
   const handleCompute = async () => {
-    if (!input || isNaN(input) || input <= 0) {
+    const num = parseInt(input);
+    if (isNaN(num) || num <= 0) {
       toast.error("Please enter a valid positive number");
       return;
     }
 
+    setStatus(num > PAYMENT_THRESHOLD ? 'payment_pending' : 'processing');
+    setTimeElapsed(0);
+
+    if (num <= PAYMENT_THRESHOLD) {
+      await startComputation(num);
+    }
+  };
+
+  const startComputation = async (num) => {
     setStatus('processing');
     setProgress(0);
-    setTimeElapsed(0);
-    
-    timerRef.current = setInterval(() => {
-      setTimeElapsed(prev => prev + 1);
-    }, 1000);
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => setTimeElapsed(prev => prev + 1), 1000);
 
     try {
       const response = await fetch(`${API_BASE}/compute`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ n: parseInt(input) }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ n: num })
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Request failed');
-      }
-
+      if (!response.ok) throw new Error("Computation failed");
       const data = await response.json();
       setJobId(data.job_id);
       setupEventStream(data.job_id);
@@ -62,34 +65,36 @@ export default function App() {
 
   const setupEventStream = (jobId) => {
     eventSourceRef.current?.close();
-    
     const es = new EventSource(`${API_BASE}/stream-status/${jobId}`);
     eventSourceRef.current = es;
 
     es.onmessage = (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        if (data.event === 'complete') {
-          handleCompletion(data.size);
-        } else if (data.event === 'progress') {
-          setProgress(prev => Math.min(prev + 10, 90));
-        }
-      } catch (err) {
-        console.error("Error parsing event:", err);
+      if (e.data.trim() === ": heartbeat") {
+        setProgress(prev => Math.min(prev + 1, 99));
       }
     };
 
-    es.onerror = () => {
+    es.addEventListener('complete', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        handleCompletion(data.size);
+        es.close();
+      } catch (err) {
+        handleError(new Error("Invalid completion data"));
+      }
+    });
+
+    es.addEventListener('error', (e) => {
+      handleError(new Error("Computation failed"));
       es.close();
-      handleError(new Error("Connection lost"));
-    };
+    });
   };
 
   const handleCompletion = (size) => {
     clearInterval(timerRef.current);
     setStatus('complete');
     setProgress(100);
-    toast.success(`Computation completed in ${timeElapsed}s`);
+    toast.success(`Computation completed in ${timeElapsed}s | Result size: ${(size/1024).toFixed(1)}KB`);
   };
 
   const handleError = (error) => {
@@ -97,6 +102,71 @@ export default function App() {
     setStatus('error');
     toast.error(error.message);
   };
+
+  const PayPalPaymentModal = () => (
+    <div className="payment-modal">
+      <h3>Pay with PayPal</h3>
+      <div className="payment-instructions">
+        <p>Payment of ${PAYMENT_AMOUNT_USD} USD required for computations > {PAYMENT_THRESHOLD}</p>
+        
+        <PayPalScriptProvider 
+          options={{ 
+            "client-id": process.env.REACT_APP_PAYPAL_CLIENT_ID,
+            "currency": "USD",
+            "intent": "capture"
+          }}
+        >
+          <PayPalButtons
+            style={{ 
+              layout: "vertical",
+              color: "gold",
+              shape: "rect",
+              label: "buynow",
+              height: 45
+            }}
+            createOrder={async (data, actions) => {
+              const response = await fetch(`${API_BASE}/create-paypal-order`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ n: parseInt(input) })
+              });
+              const orderData = await response.json();
+              return orderData.paymentID;
+            }}
+            onApprove={async (data, actions) => {
+              setStatus('verifying');
+              try {
+                const response = await fetch(`${API_BASE}/capture-paypal-order`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                  body: `paymentID=${data.orderID}&payerID=${data.payerID}`
+                });
+
+                if (!response.ok) throw new Error("Payment verification failed");
+                
+                const result = await response.json();
+                setJobId(result.job_id);
+                setStatus('processing');
+                setupEventStream(result.job_id);
+                setPaymentInfo(null);
+              } catch (error) {
+                toast.error(error.message);
+                setStatus('payment_pending');
+              }
+            }}
+            onError={(err) => {
+              toast.error("Payment failed");
+              setStatus('payment_pending');
+            }}
+            onCancel={() => {
+              toast.warning("Payment cancelled");
+              setStatus('idle');
+            }}
+          />
+        </PayPalScriptProvider>
+      </div>
+    </div>
+  );
 
   return (
     <div className="app-container">
@@ -107,6 +177,12 @@ export default function App() {
 
       <div className="compute-card">
         <div className="input-group">
+          {parseInt(input) > PAYMENT_THRESHOLD && status === 'idle' && (
+            <div className="payment-tooltip">
+              Payment required for computations > {PAYMENT_THRESHOLD}
+            </div>
+          )}
+
           <input
             type="number"
             value={input}
@@ -115,6 +191,7 @@ export default function App() {
             placeholder="Enter a positive integer"
             disabled={status === 'processing'}
           />
+
           <button
             onClick={handleCompute}
             disabled={status === 'processing' || !input}
@@ -146,15 +223,24 @@ export default function App() {
         )}
 
         {status === 'error' && (
-          <div className="error-container">
-            <button onClick={handleCompute}>
-              <FaExclamationTriangle /> Retry
-            </button>
-          </div>
+          <button onClick={handleCompute} className="retry-button">
+            Retry Calculation
+          </button>
         )}
       </div>
 
-      <ToastContainer position="bottom-right" />
+      {paymentInfo && <PayPalPaymentModal />}
+
+      <ToastContainer
+        position="bottom-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
   );
 }
