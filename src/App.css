@@ -1,437 +1,176 @@
-/* ===== Base Styles ===== */
+/* ===== BASE STYLES ===== */
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f8f9fa;
-  color: #333;
+  font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   line-height: 1.6;
+  color: #333;
+  background-color: #f8f9fa;
   margin: 0;
-  padding: 0;
+  padding: 20px;
 }
 
-.app-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
-/* ===== Header Styles ===== */
-.app-header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.app-header h1 {
-  color: #2c3e50;
-  font-size: 2.2rem;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.app-header p {
-  color: #7f8c8d;
-  font-size: 1.1rem;
-  margin-top: 0;
-}
-
-/* ===== Payment Modals ===== */
-.payment-modal {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-  margin: 2rem 0;
+/* ===== LOGS CONTAINER ===== */
+.logs-container {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  padding: 20px;
+  margin-top: 20px;
   border: 1px solid #e0e0e0;
 }
 
-.payment-modal h3 {
-  color: #003087; /* PayPal blue */
-  margin-top: 0;
-  font-size: 1.5rem;
-  text-align: center;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #f0f0f0;
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
 }
 
-.payment-instructions {
-  margin: 1.5rem 0;
+/* ===== LOG ENTRIES ===== */
+.log-entry {
+  padding: 12px 0;
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 15px;
+  border-bottom: 1px solid #f5f5f5;
 }
 
-.payment-instructions p {
-  margin: 1rem 0;
-  text-align: center;
-  color: #555;
+/* Payment-specific log entries */
+.log-entry.payment-required {
+  background: #FFF8E1;
+  margin: 0 -20px;
+  padding: 12px 20px;
+  border-left: 4px solid #FFC107;
+  border-bottom: 1px solid #FFE082;
 }
 
-/* ===== Compute Card Styles ===== */
-.compute-card {
+.log-entry.payment-action {
+  background: #E3F2FD;
+  margin: 0 -20px;
+  padding: 12px 20px;
+  border-left: 4px solid #2196F3;
+  border-bottom: 1px solid #90CAF9;
+}
+
+/* Timestamp styling */
+.log-timestamp {
+  color: #757575;
+  font-size: 0.8em;
+  font-family: 'Roboto Mono', monospace;
+}
+
+/* Message styling */
+.log-message {
+  font-size: 0.95em;
+}
+
+.log-message.payment-alert {
+  color: #D84315;
+  font-weight: 500;
+}
+
+.log-message.payment-success {
+  color: #2E7D32;
+  font-weight: 500;
+}
+
+/* ===== PAYMENT MODAL ===== */
+.payment-modal {
   background: white;
   border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-}
-
-.input-group {
-  margin-bottom: 1.5rem;
-  position: relative;
-}
-
-.payment-tooltip {
-  position: absolute;
-  top: -35px;
-  right: 0;
-  background: #003087;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
-}
-
-.payment-tooltip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  right: 15px;
-  border-width: 8px;
-  border-style: solid;
-  border-color: #003087 transparent transparent transparent;
-}
-
-/* ===== Input & Button Styles ===== */
-input[type="number"] {
-  width: 100%;
-  padding: 0.8rem;
-  margin: 0.8rem 0;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.3s;
-}
-
-input[type="number"]:focus {
-  outline: none;
-  border-color: #003087;
-  box-shadow: 0 0 0 3px rgba(0, 48, 135, 0.1);
-}
-
-button {
-  background-color: #003087;
-  color: white;
-  border: none;
-  padding: 0.8rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-button:hover:not(:disabled) {
-  background-color: #00256b;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
-.retry-button {
-  background-color: #e74c3c;
-}
-
-.retry-button:hover {
-  background-color: #c0392b;
-}
-
-.download-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  text-decoration: none;
-  margin-top: 1rem;
-  background-color: #27ae60;
-}
-
-.download-button:hover {
-  background-color: #219653;
-}
-
-/* ===== Progress Indicator ===== */
-.progress-container {
-  margin: 1.5rem 0;
-  background: #f0f0f0;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.progress-bar {
-  height: 10px;
-  background: linear-gradient(90deg, #0070ba, #00c4ff);
-  transition: width 0.3s ease;
-}
-
-.progress-info {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-  color: #7f8c8d;
-}
-
-/* ===== Logs Section Styles ===== */
-.logs-section {
-  margin-top: 2rem;
-  border-top: 1px solid #e0e0e0;
-  padding-top: 1.5rem;
-}
-
-.logs-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.logs-header h3 {
-  margin: 0;
-  font-size: 1.2rem;
-  color: #2c3e50;
-}
-
-.logs-controls {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.logs-controls button {
-  width: auto;
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  background-color: #7f8c8d;
-}
-
-.logs-controls button:hover {
-  background-color: #6c7a7d;
-}
-
-.logs-container {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 1rem;
-  max-height: 300px;
-  overflow-y: auto;
+  padding: 25px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+  max-width: 500px;
+  margin: 30px auto;
   border: 1px solid #e0e0e0;
+  animation: fadeIn 0.3s ease-out;
 }
 
-.logs-content {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 0.9rem;
-  line-height: 1.5;
-}
-
-.log-entry {
-  padding: 0.3rem 0;
-  border-bottom: 1px solid #e0e0e0;
-  color: #333;
-}
-
-.log-entry:last-child {
-  border-bottom: none;
-}
-
-.empty-logs {
-  color: #7f8c8d;
-  text-align: center;
-  padding: 1rem;
-  font-style: italic;
-}
-
-/* ===== PayPal Button Container ===== */
-.paypal-button-container {
-  margin: 1.5rem 0;
-}
-
-.payment-methods-notice {
+.payment-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-top: 1rem;
-  color: #7f8c8d;
-  font-size: 0.9rem;
+  gap: 10px;
+  margin-bottom: 20px;
+  color: #0D47A1;
 }
 
-/* ===== Status Messages ===== */
-.status-message {
-  padding: 0.8rem;
+.payment-alert-box {
+  background: #FFF3E0;
+  padding: 15px;
   border-radius: 8px;
-  margin-top: 1rem;
-  text-align: center;
+  border-left: 4px solid #FFA000;
+  margin: 20px 0;
 }
 
-.status-success {
-  color: #27ae60;
-  background: #e8f5e9;
+.payment-steps {
+  background: #E8F5E9;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 20px 0;
+  border-left: 4px solid #4CAF50;
 }
 
-.status-error {
-  color: #e74c3c;
-  background: #fdecea;
+.payment-amount {
+  font-size: 1.4em;
+  font-weight: bold;
+  color: #0D47A1;
+  margin: 10px 0;
 }
 
-.status-processing {
-  color: #3498db;
-  background: #e3f2fd;
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* ===== Spinner Animation ===== */
-.spin {
-  animation: spin 1s linear infinite;
-  display: inline-block;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* ===== Responsive Design ===== */
-@media (max-width: 768px) {
-  .app-container {
-    padding: 1.5rem;
-  }
-
-  .compute-card, .payment-modal {
-    padding: 1.5rem;
-  }
-
-  .app-header h1 {
-    font-size: 1.8rem;
-  }
-
-  .logs-container {
-    max-height: 200px;
-  }
-}
-
-@media (max-width: 480px) {
-  .app-container {
-    padding: 1rem;
-  }
-
-  .compute-card, .payment-modal {
-    padding: 1.2rem;
-  }
-
-  .app-header h1 {
-    font-size: 1.5rem;
-  }
-
-  input[type="number"], button {
-    padding: 0.7rem;
-  }
-
-  .logs-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .logs-controls {
-    width: 100%;
-    justify-content: flex-end;
-  }
-}
-
-/* ===== Dark Mode Support ===== */
+/* ===== DARK MODE ===== */
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #121212;
-    color: #f1f1f1;
+    background: #121212;
+    color: #e0e0e0;
   }
-
-  .compute-card, .payment-modal {
-    background: #1e1e1e;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  
+  .logs-container,
+  .payment-modal {
+    background: #1E1E1E;
     border-color: #333;
   }
-
-  input[type="number"] {
-    background: #2d2d2d;
-    border-color: #444;
-    color: #f1f1f1;
-  }
-
-  .progress-container {
-    background: #2d2d2d;
-  }
-
-  .payment-tooltip {
-    background: #0070ba;
-  }
-
-  .payment-tooltip::after {
-    border-top-color: #0070ba;
-  }
-
-  .logs-section {
-    border-top-color: #333;
-  }
-
-  .logs-container {
-    background: #2d2d2d;
-    border-color: #444;
-  }
-
+  
   .log-entry {
-    color: #f1f1f1;
-    border-bottom-color: #444;
+    border-bottom-color: #333;
   }
-
-  .empty-logs {
-    color: #7f8c8d;
+  
+  .log-entry.payment-required {
+    background: #332E00;
+    border-left-color: #FFD600;
   }
-
-  .logs-header h3 {
-    color: #f1f1f1;
+  
+  .log-entry.payment-action {
+    background: #0D1B2A;
+    border-left-color: #1976D2;
   }
-
-  .logs-controls button {
-    background-color: #444;
+  
+  .payment-alert-box {
+    background: #332400;
+    border-left-color: #FF8F00;
   }
-
-  .logs-controls button:hover {
-    background-color: #555;
+  
+  .payment-steps {
+    background: #1B3321;
+    border-left-color: #388E3C;
   }
 }
 
-/* ===== PayPal Button Overrides ===== */
-.paypal-buttons {
-  border-radius: 8px !important;
-  overflow: hidden !important;
-}
-
-/* ===== Toast Notifications ===== */
-.Toastify__toast {
-  border-radius: 8px !important;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-}
-
-.Toastify__toast--success {
-  background: #27ae60 !important;
-}
-
-.Toastify__toast--error {
-  background: #e74c3c !important;
+/* ===== RESPONSIVE ===== */
+@media (max-width: 600px) {
+  .log-entry {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+  
+  .payment-modal {
+    padding: 15px;
+    margin: 15px;
+  }
 }
