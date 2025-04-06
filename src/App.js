@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaSpinner, FaDownload, FaInfoCircle } from 'react-icons/fa';
+import { FaSpinner, FaDownload, FaInfoCircle, FaTimes } from 'react-icons/fa';
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -16,81 +16,125 @@ export default function App() {
   const [progress, setProgress] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [paymentInfo, setPaymentInfo] = useState(null);
+  const [logs, setLogs] = useState([]);
+  const [showLogs, setShowLogs] = useState(false);
   const eventSourceRef = useRef(null);
   const timerRef = useRef(null);
+  const logsEndRef = useRef(null);
+
+  const addLog = (message) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLogs(prev => [...prev, `${timestamp}: ${message}`]);
+    setTimeout(() => logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+  };
 
   useEffect(() => {
     return () => {
+      addLog('Cleaning up computation resources');
       eventSourceRef.current?.close();
       clearInterval(timerRef.current);
     };
   }, []);
 
   const handleCompute = async () => {
+    addLog(`Starting computation for input: ${input}`);
     const num = parseInt(input);
     if (isNaN(num) || num <= 0) {
+      addLog(`Invalid input detected: ${input}`);
       toast.error("Please enter a valid positive number");
       return;
     }
 
+    addLog(`Computation initiated for n=${num}`);
     setStatus(num > PAYMENT_THRESHOLD ? 'payment_pending' : 'processing');
     setTimeElapsed(0);
 
     if (num <= PAYMENT_THRESHOLD) {
+      addLog('Starting computation without payment');
       await startComputation(num);
+    } else {
+      addLog(`Payment required for computations > ${PAYMENT_THRESHOLD}`);
+      setPaymentInfo({ amount: PAYMENT_AMOUNT_USD, n: num });
     }
   };
 
   const startComputation = async (num) => {
+    addLog(`Initializing computation for n=${num}`);
     setStatus('processing');
     setProgress(0);
     clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => setTimeElapsed(prev => prev + 1), 1000);
+    timerRef.current = setInterval(() => {
+      setTimeElapsed(prev => {
+        if (prev % 5 === 0) addLog(`Computation in progress (${prev}s elapsed)`);
+        return prev + 1;
+      });
+    }, 1000);
 
     try {
+      addLog('Sending request to computation backend');
       const response = await fetch(`${API_BASE}/compute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ n: num })
       });
 
-      if (!response.ok) throw new Error("Computation failed");
+      if (!response.ok) {
+        const errorData = await response.text();
+        addLog(`Computation failed: ${errorData}`);
+        throw new Error("Computation failed");
+      }
+
       const data = await response.json();
+      addLog(`Computation job created with ID: ${data.job_id}`);
       setJobId(data.job_id);
       setupEventStream(data.job_id);
     } catch (error) {
+      addLog(`Error: ${error.message}`);
       handleError(error);
     }
   };
 
   const setupEventStream = (jobId) => {
+    addLog(`Setting up event stream for job ${jobId}`);
     eventSourceRef.current?.close();
     const es = new EventSource(`${API_BASE}/stream-status/${jobId}`);
     eventSourceRef.current = es;
 
+    es.onopen = () => {
+      addLog('Connected to computation event stream');
+    };
+
     es.onmessage = (e) => {
       if (e.data.trim() === ": heartbeat") {
-        setProgress(prev => Math.min(prev + 1, 99));
+        setProgress(prev => {
+          const newProgress = Math.min(prev + 1, 99);
+          if (newProgress % 10 === 0) addLog(`Progress: ${newProgress}%`);
+          return newProgress;
+        });
       }
     };
 
     es.addEventListener('complete', (e) => {
       try {
         const data = JSON.parse(e.data);
+        addLog(`Computation completed! Result size: ${data.size} bytes`);
         handleCompletion(data.size);
         es.close();
       } catch (err) {
+        addLog('Error parsing completion data');
         handleError(new Error("Invalid completion data"));
       }
     });
 
     es.addEventListener('error', (e) => {
+      addLog('Event stream error - computation failed');
       handleError(new Error("Computation failed"));
       es.close();
     });
   };
 
   const handleCompletion = (size) => {
+    addLog(`Finalizing computation results (${(size/1024).toFixed(1)}KB)`);
     clearInterval(timerRef.current);
     setStatus('complete');
     setProgress(100);
@@ -98,9 +142,15 @@ export default function App() {
   };
 
   const handleError = (error) => {
+    addLog(`Computation error: ${error.message}`);
     clearInterval(timerRef.current);
     setStatus('error');
     toast.error(error.message);
+  };
+
+  const clearLogs = () => {
+    setLogs([]);
+    addLog('Logs cleared - ready for new computation');
   };
 
   const PayPalPaymentModal = () => (
@@ -227,6 +277,37 @@ export default function App() {
             Retry Calculation
           </button>
         )}
+
+        <div className="logs-section">
+          <div className="logs-header">
+            <h3>Computation Logs</h3>
+            <div className="logs-controls">
+              <button onClick={() => setShowLogs(!showLogs)}>
+                {showLogs ? 'Hide' : 'Show'} Logs
+              </button>
+              <button onClick={clearLogs} title="Clear logs">
+                <FaTimes />
+              </button>
+            </div>
+          </div>
+          
+          {showLogs && (
+            <div className="logs-container">
+              {logs.length > 0 ? (
+                <>
+                  <div className="logs-content">
+                    {logs.map((log, index) => (
+                      <div key={index} className="log-entry">{log}</div>
+                    ))}
+                    <div ref={logsEndRef} />
+                  </div>
+                </>
+              ) : (
+                <div className="empty-logs">No logs available</div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {paymentInfo && <PayPalPaymentModal />}
