@@ -6,9 +6,9 @@ import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
 const API_BASE = process.env.REACT_APP_API_BASE || 'https://factorial-backend.sliplane.app';
-const PAYPAL_CLIENT_ID ="AVZKHeKzHVF3PFZc3SKap5FYU2bctp7kitAVF_qo2i2Wk2dXMwIgmr2c88i6oQmU00FgKn598ql748zu";
-const PAYMENT_THRESHOLD = 1000;
-const PAYMENT_AMOUNT_USD = 3.99;
+const PAYPAL_CLIENT_ID = "AVZKHeKzHVF3PFZc3SKap5FYU2bctp7kitAVF_qo2i2Wk2dXMwIgmr2c88i6oQmU00FgKn598ql748zu";
+const PAYMENT_THRESHOLD = process.env.REACT_APP_PAYMENT_THRESHOLD || 1000;
+const PAYMENT_AMOUNT_USD = process.env.REACT_APP_PAYMENT_AMOUNT_USD || 3.99;
 
 export default function App() {
   const [input, setInput] = useState('');
@@ -80,9 +80,10 @@ export default function App() {
       });
 
       if (!response.ok) {
-        const errorData = await response.text();
-        addLog(`Computation failed: ${errorData}`);
-        throw new Error("Computation failed");
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.detail || "Computation failed";
+        addLog(`Computation failed: ${errorMessage}`);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -162,7 +163,7 @@ export default function App() {
         
         <PayPalScriptProvider 
           options={{ 
-            "client-id":PAYPAL_CLIENT_ID,
+            "client-id": PAYPAL_CLIENT_ID,
             "currency": "USD",
             "intent": "capture"
           }}
@@ -176,25 +177,35 @@ export default function App() {
               height: 45
             }}
             createOrder={async (data, actions) => {
-              const response = await fetch(`${API_BASE}/create-paypal-order`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ n: parseInt(input) })
-              });
-              const orderData = await response.json();
-              return orderData.paymentID;
+              try {
+                const response = await fetch(`${API_BASE}/create-paypal-order`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ n: parseInt(input) })
+                });
+                const orderData = await response.json();
+                return orderData.payment_id;
+              } catch (error) {
+                toast.error("Failed to create payment order");
+                throw error;
+              }
             }}
             onApprove={async (data, actions) => {
               setStatus('verifying');
               try {
                 const response = await fetch(`${API_BASE}/capture-paypal-order`, {
                   method: "POST",
-                  headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                  body: `paymentID=${data.orderID}&payerID=${data.payerID}`
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    payment_id: data.orderID,
+                    payer_id: data.payerID
+                  })
                 });
 
-                if (!response.ok) throw new Error("Payment verification failed");
-                
+                if (!response.ok) {
+                  throw new Error("Payment verification failed");
+                }
+
                 const result = await response.json();
                 setJobId(result.job_id);
                 setStatus('processing');
