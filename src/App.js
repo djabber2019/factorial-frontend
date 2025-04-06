@@ -161,7 +161,7 @@ export default function App() {
         
         <PayPalScriptProvider 
           options={{ 
-            "client-id": process.env.REACT_APP_PAYPAL_CLIENT_ID,
+            "client-id": process.env.APP_PAYPAL_CLIENT_ID,
             "currency": "USD",
             "intent": "capture"
           }}
