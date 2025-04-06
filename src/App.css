@@ -190,6 +190,74 @@ button:disabled {
   color: #7f8c8d;
 }
 
+/* ===== Logs Section Styles ===== */
+.logs-section {
+  margin-top: 2rem;
+  border-top: 1px solid #e0e0e0;
+  padding-top: 1.5rem;
+}
+
+.logs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.logs-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #2c3e50;
+}
+
+.logs-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.logs-controls button {
+  width: auto;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  background-color: #7f8c8d;
+}
+
+.logs-controls button:hover {
+  background-color: #6c7a7d;
+}
+
+.logs-container {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+}
+
+.logs-content {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.log-entry {
+  padding: 0.3rem 0;
+  border-bottom: 1px solid #e0e0e0;
+  color: #333;
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+.empty-logs {
+  color: #7f8c8d;
+  text-align: center;
+  padding: 1rem;
+  font-style: italic;
+}
+
 /* ===== PayPal Button Container ===== */
 .paypal-button-container {
   margin: 1.5rem 0;
@@ -251,6 +319,10 @@ button:disabled {
   .app-header h1 {
     font-size: 1.8rem;
   }
+
+  .logs-container {
+    max-height: 200px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -268,6 +340,17 @@ button:disabled {
 
   input[type="number"], button {
     padding: 0.7rem;
+  }
+
+  .logs-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .logs-controls {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 
@@ -300,6 +383,36 @@ button:disabled {
 
   .payment-tooltip::after {
     border-top-color: #0070ba;
+  }
+
+  .logs-section {
+    border-top-color: #333;
+  }
+
+  .logs-container {
+    background: #2d2d2d;
+    border-color: #444;
+  }
+
+  .log-entry {
+    color: #f1f1f1;
+    border-bottom-color: #444;
+  }
+
+  .empty-logs {
+    color: #7f8c8d;
+  }
+
+  .logs-header h3 {
+    color: #f1f1f1;
+  }
+
+  .logs-controls button {
+    background-color: #444;
+  }
+
+  .logs-controls button:hover {
+    background-color: #555;
   }
 }
 
