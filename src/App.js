@@ -6,7 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
 const API_BASE = process.env.REACT_APP_API_BASE || 'https://factorial-backend.sliplane.app';
-const PAYPAL_CLIENT_ID = "AVZKHeKzHVF3PFZc3SKap5FYU2bctp7kitAVF_qo2i2Wk2dXMwIgmr2c88i6oQmU00FgKn598ql748zu";
+const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || 'AVZKHeKzHVF3PFZc3SKap5FYU2bctp7kitAVF_qo2i2Wk2dXMwIgmr2c88i6oQmU00FgKn598ql748zu';
 const PAYMENT_THRESHOLD = 1000;
 const PAYMENT_AMOUNT_USD = 3.99;
 
