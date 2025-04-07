@@ -158,10 +158,28 @@ button:disabled {
   text-decoration: none;
   margin-top: var(--spacing-sm);
   background-color: var(--success-green);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: 8px;
 }
 
 .download-button:hover {
   background-color: var(--dark-green);
+}
+
+.cancel-button {
+  background: none;
+  border: none;
+  color: var(--dark-gray);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: var(--spacing-xs);
+  width: auto;
+  margin-top: var(--spacing-sm);
+}
+
+.cancel-button:hover {
+  color: var(--text-dark);
 }
 
 /* ===== Progress Indicator ===== */
@@ -186,7 +204,7 @@ button:disabled {
   color: var(--dark-gray);
 }
 
-/* ===== Enhanced Payment Modal ===== */
+/* ===== Payment Modal ===== */
 .payment-modal {
   background: white;
   border-radius: 12px;
@@ -198,37 +216,34 @@ button:disabled {
   animation: fadeIn 0.3s ease-out;
 }
 
-.payment-modal-header {
+.payment-modal h3 {
   color: var(--primary-blue);
-  margin: 0 0 var(--spacing-md);
-  font-size: 1.5rem;
+  margin-top: 0;
   text-align: center;
-  padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--medium-gray);
+}
+
+.payment-instructions {
+  text-align: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.payment-instructions p {
+  margin-bottom: var(--spacing-md);
+  color: var(--text-dark);
+}
+
+#paypal-button-container {
+  min-height: 45px;
+  margin: var(--spacing-md) 0;
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: var(--spacing-xs);
-}
-
-.payment-notice {
-  margin: var(--spacing-md) 0;
-  text-align: center;
-  line-height: 1.6;
-}
-
-.payment-highlight {
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: var(--primary-blue);
-  margin: var(--spacing-md) 0;
-  padding: var(--spacing-xs);
-  background: #f8fafc;
+  background: white;
   border-radius: 8px;
-  border-left: 4px solid var(--primary-blue);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--medium-gray);
 }
 
-/* ===== Enhanced Computation Logs ===== */
+/* ===== Computation Logs ===== */
 .logs-section {
   margin-top: var(--spacing-lg);
   border-top: 1px solid var(--medium-gray);
@@ -242,14 +257,8 @@ button:disabled {
   margin-bottom: var(--spacing-sm);
 }
 
-.logs-toggle {
-  background: none;
-  border: none;
-  color: var(--primary-blue);
-  font-weight: 600;
-  cursor: pointer;
+.logs-controls {
   display: flex;
-  align-items: center;
   gap: var(--spacing-xs);
 }
 
@@ -260,47 +269,13 @@ button:disabled {
   max-height: 300px;
   overflow-y: auto;
   border: 1px solid var(--medium-gray);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .log-entry {
   padding: 0.75rem 0;
   border-bottom: 1px solid var(--medium-gray);
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--spacing-sm);
-  align-items: center;
-}
-
-/* Payment-specific log entries */
-.log-entry.payment-required {
-  background: #fff8e6;
-  margin: 0 calc(-1 * var(--spacing-sm));
-  padding: 0.75rem var(--spacing-sm);
-  border-left: 4px solid var(--warning-orange);
-}
-
-.log-entry.payment-action {
-  background: #e3f2fd;
-  margin: 0 calc(-1 * var(--spacing-sm));
-  padding: 0.75rem var(--spacing-sm);
-  border-left: 4px solid var(--light-blue);
-}
-
-.log-timestamp {
-  color: var(--dark-gray);
-  font-family: 'Roboto Mono', monospace;
-  font-size: 0.8rem;
-}
-
-.log-message {
-  color: var(--text-dark);
-  word-break: break-word;
-}
-
-.log-message.payment-alert {
-  color: #d84315;
-  font-weight: 500;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
 }
 
 .empty-logs {
@@ -308,29 +283,6 @@ button:disabled {
   text-align: center;
   padding: var(--spacing-sm);
   font-style: italic;
-}
-
-/* ===== Status Messages ===== */
-.status-message {
-  padding: var(--spacing-xs);
-  border-radius: 8px;
-  margin-top: var(--spacing-sm);
-  text-align: center;
-}
-
-.status-success {
-  color: var(--success-green);
-  background: #e8f5e9;
-}
-
-.status-error {
-  color: var(--error-red);
-  background: #fdecea;
-}
-
-.status-processing {
-  color: #3498db;
-  background: #e3f2fd;
 }
 
 /* ===== Animations ===== */
@@ -349,18 +301,18 @@ button:disabled {
   display: inline-block;
 }
 
-/* ===== PayPal Button Container ===== */
-.paypal-button-container {
-  margin: var(--spacing-md) 0;
+/* ===== Toast Notifications ===== */
+.Toastify__toast {
+  border-radius: 8px !important;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
 }
 
-.payment-methods-notice {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: var(--spacing-sm);
-  color: var(--dark-gray);
-  font-size: 0.9rem;
+.Toastify__toast--success {
+  background: var(--success-green) !important;
+}
+
+.Toastify__toast--error {
+  background: var(--error-red) !important;
 }
 
 /* ===== Responsive Design ===== */
@@ -375,10 +327,6 @@ button:disabled {
 
   .app-header h1 {
     font-size: 1.8rem;
-  }
-  
-  .logs-container {
-    max-height: 200px;
   }
 }
 
@@ -398,11 +346,6 @@ button:disabled {
   input[type="number"], button {
     padding: 0.7rem;
   }
-  
-  .log-entry {
-    grid-template-columns: 1fr;
-    gap: 0.3rem;
-  }
 }
 
 /* ===== Dark Mode Support ===== */
@@ -413,6 +356,10 @@ button:disabled {
     --medium-gray: #333;
   }
 
+  body {
+    background-color: #121212;
+  }
+
   .compute-card, .payment-modal {
     background: #1e1e1e;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -421,9 +368,15 @@ button:disabled {
   input[type="number"] {
     background: #2d2d2d;
     color: var(--text-light);
+    border-color: #444;
   }
 
-  .progress-container {
+  #paypal-button-container {
+    background: #2d2d2d;
+    border-color: #444;
+  }
+
+  .logs-container {
     background: #2d2d2d;
   }
 
@@ -434,38 +387,4 @@ button:disabled {
   .payment-tooltip::after {
     border-top-color: #0070ba;
   }
-  
-  .logs-section {
-    --light-gray: #2d2d2d;
-  }
-  
-  .log-entry.payment-required {
-    background: #332e00;
-    border-left-color: var(--warning-orange);
-  }
-  
-  .log-entry.payment-action {
-    background: #0d2b40;
-    border-left-color: var(--light-blue);
-  }
-}
-
-/* ===== PayPal Button Overrides ===== */
-.paypal-buttons {
-  border-radius: 8px !important;
-  overflow: hidden !important;
-}
-
-/* ===== Toast Notifications ===== */
-.Toastify__toast {
-  border-radius: 8px !important;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-}
-
-.Toastify__toast--success {
-  background: var(--success-green) !important;
-}
-
-.Toastify__toast--error {
-  background: var(--error-red) !important;
 }
