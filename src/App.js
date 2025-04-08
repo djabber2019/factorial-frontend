@@ -196,11 +196,7 @@ const script = document.createElement('script');
     try {
       window.paypal.HostedButtons({
        hostedButtonId: "82CSUH5M9G9YN",
-        style: {
-          layout: 'vertical',
-          color: 'blue',
-          shape: 'rect',
-          label: 'paypal'
+        
         },
         createOrder: (data, actions) => {
           return actions.order.create({
