@@ -388,7 +388,7 @@ button:disabled {
     border-top-color: #0070ba;
   }
 }
-/* Payment Modal Overlay */
+/* Payment Modal */
 .payment-modal-overlay {
   position: fixed;
   top: 0;
@@ -400,7 +400,6 @@ button:disabled {
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  animation: fadeIn 0.3s ease-out;
 }
 
 .payment-modal-content {
@@ -410,20 +409,18 @@ button:disabled {
   width: 90%;
   max-width: 500px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  text-align: center;
 }
 
 .payment-description {
   color: var(--dark-gray);
-  text-align: center;
   margin-bottom: 1.5rem;
+  font-size: 1.1rem;
 }
 
 .paypal-button-container {
   margin: 1.5rem 0;
   min-height: 45px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 .paypal-loading {
@@ -432,53 +429,49 @@ button:disabled {
   align-items: center;
   gap: 0.5rem;
   color: var(--dark-gray);
+  margin: 1.5rem 0;
 }
 
 .payment-error {
-  background-color: var(--light-gray);
+  background-color: #ffebee;
   border-left: 4px solid var(--error-red);
   padding: 1rem;
-  margin-bottom: 1rem;
+  margin: 1.5rem 0;
   border-radius: 4px;
   color: var(--error-red);
+  text-align: center;
+}
+
+.payment-error p {
+  margin-bottom: 0.5rem;
 }
 
 .payment-cancel-button {
-  display: block;
-  width: 100%;
   background: none;
   border: 1px solid var(--medium-gray);
   color: var(--dark-gray);
-  padding: 0.75rem;
+  padding: 0.75rem 1.5rem;
   border-radius: 8px;
-  margin-top: 1rem;
   cursor: pointer;
   transition: all 0.3s;
+  margin-top: 1rem;
+  width: 100%;
 }
 
 .payment-cancel-button:hover {
   background-color: var(--light-gray);
-  color: var(--text-dark);
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .payment-modal-content {
-    background: #2d2d2d;
-    border: 1px solid #444;
-  }
-  
-  .payment-cancel-button {
-    border-color: #555;
-    color: #ccc;
-  }
-  
-  .payment-cancel-button:hover {
-    background: #333;
-    color: white;
-  }
-  
-  .paypal-button-container {
-    background: #2d2d2d;
-  }
+.retry-button {
+  background-color: var(--primary-blue);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.retry-button:hover {
+  background-color: var(--dark-blue);
 }
