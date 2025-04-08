@@ -194,7 +194,7 @@ const script = document.createElement('script');
     if (!paypalSdkReady || !paypalButtonContainerRef.current) return;
 
     try {
-      window.paypal_sdk.Buttons({
+      window.paypal.Buttons({
         style: {
           layout: 'vertical',
           color: 'blue',
