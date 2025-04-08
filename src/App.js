@@ -161,135 +161,153 @@ export default function App() {
     setLogs([]);
     addLog('Logs cleared');
   };
+const PayPalPaymentModal = () => {
+  const [paypalSdkReady, setPaypalSdkReady] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const paypalButtonContainerRef = useRef(null);
 
-  const PayPalPaymentModal = () => {
-    const [sdkReady, setSdkReady] = useState(false);
-    const [error, setError] = useState(null);
-    const buttonContainerRef = useRef(null);
+  // Load PayPal SDK
+  useEffect(() => {
+    if (window.paypal) {
+      setPaypalSdkReady(true);
+      setLoading(false);
+      return;
+    }
 
-    // Load PayPal SDK
-    useEffect(() => {
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&components=buttons`;
+    script.async = true;
+    
+    script.onload = () => {
       if (window.paypal) {
-        setSdkReady(true);
-        return;
+        setPaypalSdkReady(true);
+      } else {
+        setError("PayPal SDK failed to load");
       }
+      setLoading(false);
+    };
+    
+    script.onerror = () => {
+      setError("Failed to load PayPal SDK");
+      setLoading(false);
+    };
 
-      const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`;
-      script.async = true;
-      script.onload = () => setSdkReady(true);
-      script.onerror = () => setError("Failed to load PayPal");
-      document.head.appendChild(script);
+    document.body.appendChild(script);
 
-      return () => {
-        document.head.removeChild(script);
-      };
-    }, []);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
-    // Render button when SDK is ready
-    useEffect(() => {
-      if (!sdkReady || !buttonContainerRef.current) return;
+  // Render PayPal button when SDK is ready
+  useEffect(() => {
+    if (!paypalSdkReady || !paypalButtonContainerRef.current) return;
 
-      try {
-        window.paypal.Buttons({
-          style: {
-            layout: 'vertical',
-            color: 'blue',
-            shape: 'rect',
-            label: 'paypal'
-          },
-          createOrder: (data, actions) => {
-            return actions.order.create({
-              purchase_units: [{
-                amount: {
-                  value: PAYMENT_AMOUNT_USD.toFixed(2),
-                  currency_code: "USD"
-                },
-                description: `Factorial computation for n=${paymentInfo.n}`
-              }]
+    try {
+      window.paypal.Buttons({
+        style: {
+          layout: 'vertical',
+          color: 'blue',
+          shape: 'rect',
+          label: 'paypal'
+        },
+        createOrder: (data, actions) => {
+          return actions.order.create({
+            purchase_units: [{
+              amount: {
+                value: PAYMENT_AMOUNT_USD.toFixed(2),
+                currency_code: "USD"
+              },
+              description: `Factorial computation for n=${paymentInfo.n}`
+            }]
+          });
+        },
+        onApprove: async (data, actions) => {
+          try {
+            setStatus('verifying_payment');
+            const response = await fetch(`${API_BASE}/capture-paypal-order`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                payment_id: data.orderID,
+                payer_id: data.payerID
+              })
             });
-          },
-          onApprove: async (data, actions) => {
-            try {
-              setStatus('verifying_payment');
-              const response = await fetch(`${API_BASE}/capture-paypal-order`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  payment_id: data.orderID,
-                  payer_id: data.payerID
-                })
-              });
 
-              if (!response.ok) throw new Error("Payment verification failed");
-              
-              const result = await response.json();
-              setJobId(result.job_id);
-              setStatus('processing');
-              setupEventStream(result.job_id);
-              setPaymentInfo(null);
-            } catch (err) {
-              setError(err.message);
-              setStatus('payment_pending');
-            }
-          },
-          onError: (err) => {
-            setError(err.message || "Payment failed");
+            if (!response.ok) throw new Error("Payment verification failed");
+            
+            const result = await response.json();
+            setJobId(result.job_id);
+            setStatus('processing');
+            setupEventStream(result.job_id);
+            setPaymentInfo(null);
+          } catch (err) {
+            setError(err.message);
             setStatus('payment_pending');
           }
-        }).render(buttonContainerRef.current);
-      } catch (err) {
-        setError(err.message);
-      }
-    }, [sdkReady, paymentInfo]);
+        },
+        onError: (err) => {
+          setError(err.message || "Payment processing failed");
+          setStatus('payment_pending');
+        }
+      }).render(paypalButtonContainerRef.current);
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [paypalSdkReady, paymentInfo]);
 
-    return (
-      <div className="payment-modal-overlay">
-        <div className="payment-modal-content">
-          <h3>Payment Required</h3>
-          <p className="payment-description">
-            Computation for n={paymentInfo.n} requires a payment of ${PAYMENT_AMOUNT_USD}
-          </p>
-          
-          {error && (
-            <div className="payment-error">
-              {error}
-              <button 
-                className="retry-button"
-                onClick={() => setError(null)}
-              >
-                Try Again
-              </button>
-            </div>
-          )}
-
-          <div 
-            ref={buttonContainerRef} 
-            className="paypal-button-container"
-            style={{ minHeight: sdkReady ? 'auto' : '200px' }}
-          >
-            {!sdkReady && (
-              <div className="paypal-loading">
-                <FaSpinner className="spin" />
-                <span>Loading PayPal...</span>
-              </div>
-            )}
+  return (
+    <div className="payment-modal-overlay">
+      <div className="payment-modal-content">
+        <h3>Payment Required</h3>
+        <p className="payment-description">
+          Computation for n={paymentInfo.n} requires a payment of ${PAYMENT_AMOUNT_USD}
+        </p>
+        
+        {loading && (
+          <div className="paypal-loading">
+            <FaSpinner className="spin" />
+            <span>Loading payment options...</span>
           </div>
+        )}
 
-          <button 
-            className="payment-cancel-button"
-            onClick={() => {
-              setPaymentInfo(null);
-              setStatus('idle');
-            }}
-          >
-            Cancel Payment
-          </button>
-        </div>
+        {error && (
+          <div className="payment-error">
+            <p>{error}</p>
+            <button 
+              className="retry-button"
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                setPaypalSdkReady(false);
+              }}
+            >
+              Reload Payment
+            </button>
+          </div>
+        )}
+
+        <div 
+          ref={paypalButtonContainerRef} 
+          className="paypal-button-container"
+          style={{ display: paypalSdkReady && !error ? 'block' : 'none' }}
+        />
+
+        <button 
+          className="payment-cancel-button"
+          onClick={() => {
+            setPaymentInfo(null);
+            setStatus('idle');
+          }}
+        >
+          Cancel Payment
+        </button>
       </div>
-    );
-  };
-
+    </div>
+  );
+};
+ 
   return (
     <div className="app-container">
       <header className="app-header">
