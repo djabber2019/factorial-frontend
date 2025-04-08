@@ -194,10 +194,10 @@ const script = document.createElement('script');
     if (!paypalSdkReady || !paypalButtonContainerRef.current) return;
 
     try {
+        if (paypalSdkReady) {
       window.paypal.HostedButtons({
-       hostedButtonId: "82CSUH5M9G9YN"
-        
-        },
+        hostedButtonId: "82CSUH5M9G9YN"})
+      
         createOrder: (data, actions) => {
           return actions.order.create({
             purchase_units: [{
