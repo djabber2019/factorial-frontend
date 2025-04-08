@@ -167,7 +167,7 @@ const PayPalPaymentModal = () => {
 const script = document.createElement('script');
  script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=hosted-buttons&disable-funding=venmo&currency=USD`;
  script.async = true;
- scritp.data-namespace="paypal_sdk";
+ script.data-namespace= "paypal_sdk";
  script.crossOrigin = "anonymous";
  script.onload = () => {
   if (window.paypal) {
