@@ -218,7 +218,7 @@ const PayPalPaymentModal = () => {
                 value: PAYMENT_AMOUNT_USD.toFixed(2),
                 currency_code: "USD"
               },
-              description: `Factorial computation for n=${paymentInfo.n}`
+              description: `Factorial computation for n=${paymentInfo.n}`;
             }]
           });
         },
