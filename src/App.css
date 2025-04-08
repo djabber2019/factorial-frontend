@@ -388,3 +388,97 @@ button:disabled {
     border-top-color: #0070ba;
   }
 }
+/* Payment Modal Overlay */
+.payment-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.payment-modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.payment-description {
+  color: var(--dark-gray);
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.paypal-button-container {
+  margin: 1.5rem 0;
+  min-height: 45px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.paypal-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--dark-gray);
+}
+
+.payment-error {
+  background-color: var(--light-gray);
+  border-left: 4px solid var(--error-red);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  color: var(--error-red);
+}
+
+.payment-cancel-button {
+  display: block;
+  width: 100%;
+  background: none;
+  border: 1px solid var(--medium-gray);
+  color: var(--dark-gray);
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.payment-cancel-button:hover {
+  background-color: var(--light-gray);
+  color: var(--text-dark);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .payment-modal-content {
+    background: #2d2d2d;
+    border: 1px solid #444;
+  }
+  
+  .payment-cancel-button {
+    border-color: #555;
+    color: #ccc;
+  }
+  
+  .payment-cancel-button:hover {
+    background: #333;
+    color: white;
+  }
+  
+  .paypal-button-container {
+    background: #2d2d2d;
+  }
+}
