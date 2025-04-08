@@ -174,19 +174,17 @@ const PayPalPaymentModal = () => {
       setLoading(false);
       return;
     }
-
-    const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=hosted-buttons&disable-funding=venmo&currency=USD';
-    script.async = true;
-    script.onload = () => {
-      if (window.paypal) {
-        setPaypalSdkReady(true);
-      } else {
-        setError("PayPal SDK failed to load");
-      }
-      setLoading(false);
-    };
-    
+const script = document.createElement('script');
+ script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=hosted-buttons&disable-funding=venmo&currency=USD`;
+ script.async = true;
+ script.onload = () => {
+  if (window.paypal) {
+    setPaypalSdkReady(true);
+  } else {
+    setError("PayPal SDK failed to load");
+  }
+  setLoading(false);
+};
     script.onerror = () => {
       setError("Failed to load PayPal SDK");
       setLoading(false);
@@ -218,7 +216,7 @@ const PayPalPaymentModal = () => {
                 value: PAYMENT_AMOUNT_USD.toFixed(2),
                 currency_code: "USD"
               },
-              description: `Factorial computation for n=${paymentInfo.n}`;
+              description: `Factorial computation for n=${paymentInfo.n}`
             }]
           });
         },
