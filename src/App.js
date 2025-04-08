@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaSpinner, FaDownload, FaInfoCircle, FaTimes } from 'react-icons/fa';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import './App.css';
+//import './App.css';
  
 //const getApiBase = () => {
  // if (window.location.hostname === 'localhost') {
