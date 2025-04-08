@@ -159,7 +159,7 @@ const PayPalPaymentModal = () => {
 
   // Load PayPal SDK
   useEffect(() => {
-    if (window.paypal) {
+    if (window.paypal_sdk) {
       setPaypalSdkReady(true);
       setLoading(false);
       return;
