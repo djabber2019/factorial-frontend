@@ -163,82 +163,125 @@ export default function App() {
   };
 
   const PayPalPaymentModal = () => {
+    const [sdkReady, setSdkReady] = useState(false);
+    const [error, setError] = useState(null);
     const buttonContainerRef = useRef(null);
 
+    // Load PayPal SDK
     useEffect(() => {
-      if (!window.paypal || !buttonContainerRef.current) return;
+      if (window.paypal) {
+        setSdkReady(true);
+        return;
+      }
 
-      const hostedButton = window.paypal.HostedButtons({
-        hostedButtonId: HOSTED_BUTTON_ID,
-        onClick: () => {
-          addLog('Payment initiated via PayPal');
-          setStatus('payment_processing');
-        },
-        onError: (err) => {
-          addLog(`Payment error: ${err.message || JSON.stringify(err)}`);
-          toast.error("Payment failed. Please try again.");
-          setStatus('payment_pending');
-        },
-        onCancel: () => {
-          addLog('Payment cancelled by user');
-          toast.warn("Payment was cancelled");
-          setStatus('payment_pending');
-        },
-        onApprove: async (data) => {
-          try {
-            addLog(`Payment approved, capturing order: ${data.orderID}`);
-            setStatus('verifying_payment');
-            
-            const response = await fetch(`${API_BASE}/capture-paypal-order`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                payment_id: data.orderID,
-                payer_id: data.payerID
-              })
-            });
-
-            if (!response.ok) {
-              throw new Error("Payment verification failed");
-            }
-
-            const result = await response.json();
-            addLog(`Payment captured, starting job: ${result.job_id}`);
-            
-            setJobId(result.job_id);
-            setStatus('processing');
-            setupEventStream(result.job_id);
-            setPaymentInfo(null);
-          } catch (error) {
-            addLog(`Payment error: ${error.message}`);
-            toast.error(error.message);
-            setStatus('payment_pending');
-          }
-        }
-      });
-
-      hostedButton.render(buttonContainerRef.current).catch(err => {
-        addLog(`Failed to render PayPal button: ${err}`);
-        toast.error("Failed to load payment button");
-      });
+      const script = document.createElement('script');
+      script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`;
+      script.async = true;
+      script.onload = () => setSdkReady(true);
+      script.onerror = () => setError("Failed to load PayPal");
+      document.head.appendChild(script);
 
       return () => {
-        // Cleanup if needed
+        document.head.removeChild(script);
       };
     }, []);
 
+    // Render button when SDK is ready
+    useEffect(() => {
+      if (!sdkReady || !buttonContainerRef.current) return;
+
+      try {
+        window.paypal.Buttons({
+          style: {
+            layout: 'vertical',
+            color: 'blue',
+            shape: 'rect',
+            label: 'paypal'
+          },
+          createOrder: (data, actions) => {
+            return actions.order.create({
+              purchase_units: [{
+                amount: {
+                  value: PAYMENT_AMOUNT_USD.toFixed(2),
+                  currency_code: "USD"
+                },
+                description: `Factorial computation for n=${paymentInfo.n}`
+              }]
+            });
+          },
+          onApprove: async (data, actions) => {
+            try {
+              setStatus('verifying_payment');
+              const response = await fetch(`${API_BASE}/capture-paypal-order`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  payment_id: data.orderID,
+                  payer_id: data.payerID
+                })
+              });
+
+              if (!response.ok) throw new Error("Payment verification failed");
+              
+              const result = await response.json();
+              setJobId(result.job_id);
+              setStatus('processing');
+              setupEventStream(result.job_id);
+              setPaymentInfo(null);
+            } catch (err) {
+              setError(err.message);
+              setStatus('payment_pending');
+            }
+          },
+          onError: (err) => {
+            setError(err.message || "Payment failed");
+            setStatus('payment_pending');
+          }
+        }).render(buttonContainerRef.current);
+      } catch (err) {
+        setError(err.message);
+      }
+    }, [sdkReady, paymentInfo]);
+
     return (
-      <div className="payment-modal">
-        <h3>Pay with PayPal</h3>
-        <div className="payment-instructions">
-          <p>Payment of ${PAYMENT_AMOUNT_USD} required for n &gt; {PAYMENT_THRESHOLD}</p>
-          <div ref={buttonContainerRef} id="paypal-button-container"></div>
+      <div className="payment-modal-overlay">
+        <div className="payment-modal-content">
+          <h3>Payment Required</h3>
+          <p className="payment-description">
+            Computation for n={paymentInfo.n} requires a payment of ${PAYMENT_AMOUNT_USD}
+          </p>
+          
+          {error && (
+            <div className="payment-error">
+              {error}
+              <button 
+                className="retry-button"
+                onClick={() => setError(null)}
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          <div 
+            ref={buttonContainerRef} 
+            className="paypal-button-container"
+            style={{ minHeight: sdkReady ? 'auto' : '200px' }}
+          >
+            {!sdkReady && (
+              <div className="paypal-loading">
+                <FaSpinner className="spin" />
+                <span>Loading PayPal...</span>
+              </div>
+            )}
+          </div>
+
           <button 
+            className="payment-cancel-button"
             onClick={() => {
               setPaymentInfo(null);
               setStatus('idle');
             }}
-            className="cancel-button"
           >
             Cancel Payment
           </button>
