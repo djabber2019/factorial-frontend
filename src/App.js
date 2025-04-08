@@ -195,7 +195,7 @@ const script = document.createElement('script');
 
     try {
       window.paypal.HostedButtons({
-       hostedButtonId: "82CSUH5M9G9YN",
+       hostedButtonId: "82CSUH5M9G9YN"
         
         },
         createOrder: (data, actions) => {
