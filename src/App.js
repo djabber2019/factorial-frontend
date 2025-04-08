@@ -3,11 +3,21 @@ import { FaSpinner, FaDownload, FaInfoCircle, FaTimes } from 'react-icons/fa';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
-
+ 
+//const getApiBase = () => {
+ // if (window.location.hostname === 'localhost') {
+    //return 'http://localhost:8000';
+  //}
+  // For GitHub Pages and Sliplane deployments
+ // return 'https://factorial-backend.sliplane.app';
+//};
+// Force HTTPS in production
 const API_BASE = window.location.protocol === 'https:' 
      ? 'https://factorial-backend.sliplane.app'
      : 'http://localhost:8000';
-
+//const API_BASE = getApiBase();
+//console.log('Using API base:', API_BASE); 
+// Verify in browser console' 
 const PAYPAL_CLIENT_ID = "AVZKHeKzHVF3PFZc3SKap5FYU2bctp7kitAVF_qo2i2Wk2dXMwIgmr2c88i6oQmU00FgKn598ql748zu";
 const HOSTED_BUTTON_ID = "82CSUH5M9G9YN";
 const PAYMENT_THRESHOLD = process.env.REACT_APP_PAYMENT_THRESHOLD || 1000;
@@ -25,6 +35,9 @@ export default function App() {
   const eventSourceRef = useRef(null);
   const timerRef = useRef(null);
   const logsEndRef = useRef(null);
+
+  // Load PayPal SDK on component mount
+  
 
   const addLog = (message) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -138,32 +151,50 @@ export default function App() {
     setLogs([]);
     addLog('Logs cleared');
   };
+const PayPalPaymentModal = () => {
+  const [paypalSdkReady, setPaypalSdkReady] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const paypalButtonContainerRef = useRef(null);
 
-  const PayPalPaymentModal = () => {
-    const [paypalSdkReady, setPaypalSdkReady] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const paypalButtonContainerRef = useRef(null);
+  // Load PayPal SDK
+  useEffect(() => {
+    if (window.paypal) {
+      setPaypalSdkReady(true);
+      setLoading(false);
+      return;
+    }
+const script = document.createElement('script');
+ script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=hosted-buttons&disable-funding=venmo&currency=USD`;
+ script.async = true;
+// script.data-namespace= "paypal_sdk";
+ script.crossOrigin = "anonymous";
+ script.onload = () => {
+  if (window.paypal) {
+    setPaypalSdkReady(true);
+  } else {
+    setError("PayPal SDK failed to load");
+  }
+  setLoading(false);
+};
+    script.onerror = () => {
+      setError("Failed to load PayPal SDK");
+      setLoading(false);
+    };
 
-    // Load PayPal SDK
-    useEffect(() => {
-      const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=hosted-buttons&disable-funding=venmo&currency=USD`;
-      script.async = true;
-      script.crossOrigin = "anonymous";
-      script.onload = () => setPaypalSdkReady(true);
-      script.onerror = () => setError("Failed to load PayPal SDK");
-      document.body.appendChild(script);
-      
-      return () => {
-        document.body.removeChild(script);
-      };
-    }, []);
+    document.body.appendChild(script);
 
-    useEffect(() => {
-      if (!paypalSdkReady || !paypalButtonContainerRef.current) return;
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
-      window.paypal.Buttons({
+  // Render PayPal button when SDK is ready
+  useEffect(() => {
+    if (!paypalSdkReady || !paypalButtonContainerRef.current) return;
+
+    try {
+      window.paypal.HostedButtons({
         style: {
           layout: 'vertical',
           color: 'blue',
@@ -210,27 +241,166 @@ export default function App() {
           setStatus('payment_pending');
         }
       }).render(paypalButtonContainerRef.current);
-    }, [paypalSdkReady, paymentInfo]);
-
-    return (
-      <div className="payment-modal-overlay">
-        <div className="payment-modal-content">
-          <h3>Payment Required</h3>
-          <p>Computation for n={paymentInfo?.n} requires a payment of ${PAYMENT_AMOUNT_USD}</p>
-          {loading && <FaSpinner className="spin" />}
-          {error && <div>{error}</div>}
-          <div ref={paypalButtonContainerRef} />
-          <button onClick={() => setPaymentInfo(null)}>Cancel Payment</button>
-        </div>
-      </div>
-    );
-  };
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [paypalSdkReady, paymentInfo]);
 
   return (
+    <div className="payment-modal-overlay">
+      <div className="payment-modal-content">
+        <h3>Payment Required</h3>
+        <p className="payment-description">
+          Computation for n={paymentInfo.n} requires a payment of ${PAYMENT_AMOUNT_USD}
+        </p>
+        
+        {loading && (
+          <div className="paypal-loading">
+            <FaSpinner className="spin" />
+            <span>Loading payment options...</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="payment-error">
+            <p>{error}</p>
+            <button 
+              className="retry-button"
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                setPaypalSdkReady(false);
+              }}
+            >
+              Reload Payment
+            </button>
+          </div>
+        )}
+
+        <div 
+          ref={paypalButtonContainerRef} 
+          className="paypal-button-container"
+          style={{ display: paypalSdkReady && !error ? 'block' : 'none' }}
+        />
+
+        <button 
+          className="payment-cancel-button"
+          onClick={() => {
+            setPaymentInfo(null);
+            setStatus('idle');
+          }}
+        >
+          Cancel Payment
+        </button>
+      </div>
+    </div>
+  );
+};
+ 
+  return (
     <div className="app-container">
-      {/* The rest of the app code */}
+      <header className="app-header">
+        <h1><FaInfoCircle /> Factorial Calculator</h1>
+        <p>Compute massive factorials with distributed computing</p>
+      </header>
+
+      <div className="compute-card">
+        <div className="input-group">
+          {parseInt(input) > PAYMENT_THRESHOLD && status === 'idle' && (
+            <div className="payment-tooltip">
+              Payment required for computations &gt; {PAYMENT_THRESHOLD}
+            </div>
+          )}
+
+          <input
+            type="number"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            min="1"
+            placeholder="Enter a positive integer"
+            disabled={status === 'processing'}
+          />
+
+          <button
+            onClick={handleCompute}
+            disabled={status === 'processing' || !input}
+          >
+            {status === 'processing' ? (
+              <><FaSpinner className="spin" /> Computing...</>
+            ) : 'Calculate Factorial'}
+          </button>
+        </div>
+
+        {status === 'processing' && (
+          <div className="progress-container">
+            <div className="progress-bar" style={{ width: `${progress}%` }} />
+            <div className="progress-info">
+              <span>Elapsed: {timeElapsed}s</span>
+              <span>{progress}%</span>
+            </div>
+          </div>
+        )}
+
+        {status === 'complete' && jobId && (
+          <a
+            href={`${API_BASE}/download/${jobId}`}
+            className="download-button"
+            download
+          >
+            <FaDownload /> Download Result
+          </a>
+        )}
+
+        {status === 'error' && (
+          <button onClick={handleCompute} className="retry-button">
+            Retry Calculation
+          </button>
+        )}
+
+        <div className="logs-section">
+          <div className="logs-header">
+            <h3>Computation Logs</h3>
+            <div className="logs-controls">
+              <button onClick={() => setShowLogs(!showLogs)}>
+                {showLogs ? 'Hide' : 'Show'} Logs
+              </button>
+              <button onClick={clearLogs} title="Clear logs">
+                <FaTimes />
+              </button>
+            </div>
+          </div>
+          
+          {showLogs && (
+            <div className="logs-container">
+              {logs.length > 0 ? (
+                <>
+                  <div className="logs-content">
+                    {logs.map((log, index) => (
+                      <div key={index} className="log-entry">{log}</div>
+                    ))}
+                    <div ref={logsEndRef} />
+                  </div>
+                </>
+              ) : (
+                <div className="empty-logs">No logs available</div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       {paymentInfo && <PayPalPaymentModal />}
-      <ToastContainer position="bottom-right" autoClose={5000} hideProgressBar={false} />
+
+      <ToastContainer
+        position="bottom-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </div>
   );
 }
