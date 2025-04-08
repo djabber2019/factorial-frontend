@@ -159,7 +159,7 @@ const PayPalPaymentModal = () => {
 
   // Load PayPal SDK
   useEffect(() => {
-    if (window.paypal_sdk) {
+    if (window.paypal) {
       setPaypalSdkReady(true);
       setLoading(false);
       return;
@@ -193,7 +193,7 @@ const script = document.createElement('script');
     if (!paypalSdkReady || !paypalButtonContainerRef.current) return;
 
     try {
-      window.paypal.Buttons({
+      window.paypal_sdk.Buttons({
         style: {
           layout: 'vertical',
           color: 'blue',
