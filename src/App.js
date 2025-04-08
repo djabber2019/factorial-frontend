@@ -37,17 +37,7 @@ export default function App() {
   const logsEndRef = useRef(null);
 
   // Load PayPal SDK on component mount
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=hosted-buttons&disable-funding=venmo&currency=USD`;
-    script.async = true;
-    script.crossOrigin = "anonymous";
-    document.head.appendChild(script);
-
-    return () => {
-      document.head.removeChild(script);
-    };
-  }, []);
+  
 
   const addLog = (message) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -177,6 +167,7 @@ const PayPalPaymentModal = () => {
 const script = document.createElement('script');
  script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=hosted-buttons&disable-funding=venmo&currency=USD`;
  script.async = true;
+ script.crossOrigin = "anonymous";
  script.onload = () => {
   if (window.paypal) {
     setPaypalSdkReady(true);
