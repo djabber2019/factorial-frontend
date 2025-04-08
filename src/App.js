@@ -4,16 +4,19 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
  
-const getApiBase = () => {
-  if (window.location.hostname === 'localhost') {
-    return 'http://localhost:8000';
-  }
+//const getApiBase = () => {
+ // if (window.location.hostname === 'localhost') {
+    //return 'http://localhost:8000';
+  //}
   // For GitHub Pages and Sliplane deployments
-  return 'https://factorial-backend.sliplane.app';
-};
-
-const API_BASE = getApiBase();
-console.log('Using API base:', API_BASE); 
+ // return 'https://factorial-backend.sliplane.app';
+//};
+// Force HTTPS in production
+const API_BASE = window.location.protocol === 'https:' 
+     ? 'https://factorial-backend.sliplane.app'
+     : 'http://localhost:8000';
+//const API_BASE = getApiBase();
+//console.log('Using API base:', API_BASE); 
 // Verify in browser console' 
 const PAYPAL_CLIENT_ID = "AVZKHeKzHVF3PFZc3SKap5FYU2bctp7kitAVF_qo2i2Wk2dXMwIgmr2c88i6oQmU00FgKn598ql748zu";
 const HOSTED_BUTTON_ID = "82CSUH5M9G9YN";
