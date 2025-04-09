@@ -15,7 +15,6 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
   const [paypalSdkReady, setPaypalSdkReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const paypalButtonContainerRef = useRef(null);
 
   // Load PayPal SDK
   useEffect(() => {
@@ -26,13 +25,14 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
     }
 
     const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=buttons,hosted-buttons&disable-funding=venmo&currency=USD`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=hosted-buttons&disable-funding=venmo&currency=USD`;
     script.async = true;
     script.crossOrigin = "anonymous";
     
     script.onload = () => {
       if (window.paypal) {
         setPaypalSdkReady(true);
+        initializePayPalButton();
       } else {
         setError("PayPal SDK failed to load");
       }
@@ -51,26 +51,31 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
     };
   }, []);
 
-  // Render PayPal button when SDK is ready
-  useEffect(() => {
-    if (!paypalSdkReady || !paypalButtonContainerRef.current) return;
-
+  // Initialize PayPal button when SDK is ready
+  const initializePayPalButton = () => {
     try {
-      window.paypal.HostedButtons({
+      paypal.HostedButtons({
         hostedButtonId: HOSTED_BUTTON_ID,
         onApprove: async (data, actions) => {
           try {
             setStatus('verifying_payment');
             const response = await fetch(`${API_BASE}/capture-paypal-order`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { 
+                "Content-Type": "application/json",
+              },
               body: JSON.stringify({
                 payment_id: data.orderID,
-                payer_id: data.payerID
+                payer_id: data.payerID,
+                amount: PAYMENT_AMOUNT_USD,
+                n: paymentInfo.n
               })
             });
 
-            if (!response.ok) throw new Error("Payment verification failed");
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.message || "Payment verification failed");
+            }
             
             const result = await response.json();
             setJobId(result.job_id);
@@ -78,19 +83,22 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
             setupEventStream(result.job_id);
             setPaymentInfo(null);
           } catch (err) {
-            setError(err.message);
+            console.error('Payment error:', err);
+            setError(err.message || "Payment processing failed");
             setStatus('payment_pending');
           }
         },
         onError: (err) => {
+          console.error('PayPal error:', err);
           setError(err.message || "Payment processing failed");
           setStatus('payment_pending');
         }
-      }).render(paypalButtonContainerRef.current);
+      }).render("#paypal-container");
     } catch (err) {
-      setError(err.message);
+      console.error('Button render error:', err);
+      setError(err.message || "Failed to initialize payment button");
     }
-  }, [paypalSdkReady, paymentInfo]);
+  };
 
   return (
     <div className="payment-modal-overlay">
@@ -109,7 +117,7 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
 
         {error && (
           <div className="payment-error">
-            <p>{error}</p>
+            <p>Error: {error}</p>
             <button 
               className="retry-button"
               onClick={() => {
@@ -118,16 +126,12 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
                 setPaypalSdkReady(false);
               }}
             >
-              Reload Payment
+              Retry Payment
             </button>
           </div>
         )}
 
-        <div 
-          ref={paypalButtonContainerRef} 
-          className="paypal-button-container"
-          style={{ display: paypalSdkReady && !error ? 'block' : 'none' }}
-        />
+        <div id="paypal-container"></div>
 
         <button 
           className="payment-cancel-button"
