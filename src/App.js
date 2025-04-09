@@ -10,7 +10,7 @@ const PAYPAL_CLIENT_ID = "AVZKHeKzHVF3PFZc3SKap5FYU2bctp7kitAVF_qo2i2Wk2dXMwIgmr
 const HOSTED_BUTTON_ID = "82CSUH5M9G9YN";
 const PAYMENT_THRESHOLD = process.env.REACT_APP_PAYMENT_THRESHOLD || 1000;
 const PAYMENT_AMOUNT_USD = process.env.REACT_APP_PAYMENT_AMOUNT_USD || 3.99;
-
+       
 const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, setupEventStream }) => {
   const [paypalSdkReady, setPaypalSdkReady] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,7 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
     script.onload = () => {
       if (window.paypal) {
         setPaypalSdkReady(true);
-        initializePayPalButton();
+        initializeButton();
       } else {
         setError("PayPal SDK failed to load");
       }
@@ -51,30 +51,27 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
     };
   }, []);
 
-  // Initialize PayPal button when SDK is ready
-  const initializePayPalButton = () => {
+  const initializeButton = () => {
     try {
-      paypal.HostedButtons({
+      window.paypal.HostedButtons({
         hostedButtonId: HOSTED_BUTTON_ID,
         onApprove: async (data, actions) => {
           try {
             setStatus('verifying_payment');
             const response = await fetch(`${API_BASE}/capture-paypal-order`, {
               method: "POST",
-              headers: { 
-                "Content-Type": "application/json",
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 payment_id: data.orderID,
                 payer_id: data.payerID,
-                amount: PAYMENT_AMOUNT_USD,
-                n: paymentInfo.n
+                n: paymentInfo.n,
+                amount: PAYMENT_AMOUNT_USD
               })
             });
 
             if (!response.ok) {
               const errorData = await response.json();
-              throw new Error(errorData.message || "Payment verification failed");
+              throw new Error(errorData.detail || "Payment verification failed");
             }
             
             const result = await response.json();
@@ -93,7 +90,7 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
           setError(err.message || "Payment processing failed");
           setStatus('payment_pending');
         }
-      }).render("#paypal-container");
+      }).render("#paypal-button-container");
     } catch (err) {
       console.error('Button render error:', err);
       setError(err.message || "Failed to initialize payment button");
@@ -131,7 +128,7 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
           </div>
         )}
 
-        <div id="paypal-container"></div>
+        <div id="paypal-button-container"></div>
 
         <button 
           className="payment-cancel-button"
@@ -146,7 +143,6 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
     </div>
   );
 };
-
 export default function App() {
   const [input, setInput] = useState('');
   const [jobId, setJobId] = useState(null);
