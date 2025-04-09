@@ -10,7 +10,6 @@ const PAYPAL_CLIENT_ID = "BAA2USkJ7PqGA-AJEak7ATUaCGP5_DJjBeN9HQcAYYO-8fuEpikivr
 const HOSTED_BUTTON_ID = "82CSUH5M9G9YN";
 const PAYMENT_THRESHOLD = process.env.REACT_APP_PAYMENT_THRESHOLD || 1000;
 const PAYMENT_AMOUNT_USD = process.env.REACT_APP_PAYMENT_AMOUNT_USD || 3.99;
-       
 const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, setupEventStream }) => {
   const [paypalSdkReady, setPaypalSdkReady] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -58,6 +57,10 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
         onApprove: async (data, actions) => {
           try {
             setStatus('verifying_payment');
+            
+            // Add slight delay to ensure PayPal processing completes
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
             const response = await fetch(`${API_BASE}/capture-paypal-order`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -81,19 +84,19 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
             setPaymentInfo(null);
           } catch (err) {
             console.error('Payment error:', err);
-            setError(err.message || "Payment processing failed");
+            setError(err.message || "Payment processing failed. Please try again.");
             setStatus('payment_pending');
           }
         },
         onError: (err) => {
           console.error('PayPal error:', err);
-          setError(err.message || "Payment processing failed");
+          setError(err.message || "Payment processing failed. Please try again.");
           setStatus('payment_pending');
         }
       }).render("#paypal-button-container");
     } catch (err) {
       console.error('Button render error:', err);
-      setError(err.message || "Failed to initialize payment button");
+      setError("Failed to initialize payment button. Please refresh the page.");
     }
   };
 
@@ -128,6 +131,15 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
           </div>
         )}
 
+        {/* Improved customer note section */}
+        <div className="customer-note">
+          <div className="customer-note-title">Important Note:</div>
+          <div className="customer-note-content">
+            Results will be delivered as a downloadable file. 
+            Large computations may take several minutes to complete.
+          </div>
+        </div>
+
         <div id="paypal-button-container"></div>
 
         <button 
@@ -142,7 +154,7 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId, 
       </div>
     </div>
   );
-};
+};  
 export default function App() {
   const [input, setInput] = useState('');
   const [jobId, setJobId] = useState(null);
