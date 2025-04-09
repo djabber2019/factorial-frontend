@@ -14,7 +14,7 @@
   --dark-gray: #7f8c8d;
   --text-dark: #2c3e50;
   --text-light: #f1f1f1;
-  
+
   /* Spacing */
   --spacing-xs: 0.5rem;
   --spacing-sm: 1rem;
@@ -41,7 +41,7 @@ body {
   box-sizing: border-box;
 }
 
-/* ===== Header Styles ===== */
+/* ===== Header ===== */
 .app-header {
   text-align: center;
   margin-bottom: var(--spacing-lg);
@@ -63,7 +63,7 @@ body {
   margin-top: 0;
 }
 
-/* ===== Compute Card Styles ===== */
+/* ===== Compute Card ===== */
 .compute-card {
   background: white;
   border-radius: 12px;
@@ -76,7 +76,7 @@ body {
   position: relative;
 }
 
-/* ===== Input & Button Styles ===== */
+/* ===== Input & Button ===== */
 input[type="number"] {
   width: 100%;
   padding: var(--spacing-xs);
@@ -93,7 +93,8 @@ input[type="number"]:focus {
   box-shadow: 0 0 0 3px rgba(0, 48, 135, 0.1);
 }
 
-button {
+button,
+.retry-button {
   background-color: var(--primary-blue);
   color: white;
   border: none;
@@ -110,7 +111,8 @@ button {
   gap: var(--spacing-xs);
 }
 
-button:hover:not(:disabled) {
+button:hover:not(:disabled),
+.retry-button:hover {
   background-color: var(--dark-blue);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -161,7 +163,7 @@ button:disabled {
   color: var(--text-dark);
 }
 
-/* ===== Progress Indicator ===== */
+/* ===== Progress Bar ===== */
 .progress-container {
   margin: var(--spacing-md) 0;
   background: #f0f0f0;
@@ -183,7 +185,7 @@ button:disabled {
   color: var(--dark-gray);
 }
 
-/* ===== Computation Logs ===== */
+/* ===== Logs ===== */
 .logs-section {
   margin-top: var(--spacing-lg);
   border-top: 1px solid var(--medium-gray);
@@ -241,7 +243,7 @@ button:disabled {
   display: inline-block;
 }
 
-/* ===== Toast Notifications ===== */
+/* ===== Toasts ===== */
 .Toastify__toast {
   border-radius: 8px !important;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
@@ -255,12 +257,9 @@ button:disabled {
   background: var(--error-red) !important;
 }
 
-/* ===== Responsive Design ===== */
+/* ===== Responsive ===== */
 @media (max-width: 768px) {
-  .app-container {
-    padding: var(--spacing-md);
-  }
-
+  .app-container,
   .compute-card {
     padding: var(--spacing-md);
   }
@@ -283,12 +282,13 @@ button:disabled {
     font-size: 1.5rem;
   }
 
-  input[type="number"], button {
+  input[type="number"],
+  button {
     padding: 0.7rem;
   }
 }
 
-/* ===== Dark Mode Support ===== */
+/* ===== Dark Mode ===== */
 @media (prefers-color-scheme: dark) {
   :root {
     --light-gray: #121212;
@@ -316,7 +316,7 @@ button:disabled {
   }
 }
 
-/* ===== Payment Modal Styling ===== */
+/* ===== Payment Modal ===== */
 .payment-modal-overlay {
   position: fixed;
   top: 0;
@@ -346,7 +346,7 @@ button:disabled {
   text-align: center;
 }
 
-/* Customer Note Styling */
+/* ===== Customer Note ===== */
 .customer-note {
   background-color: #f8f9fa;
   border-left: 4px solid #0070ba;
@@ -366,13 +366,12 @@ button:disabled {
   line-height: 1.5;
 }
 
-/* PayPal Button Container */
+/* ===== PayPal Integration ===== */
 #paypal-button-container {
   margin: 1.5rem 0;
   min-height: 45px;
 }
 
-/* Loading State */
 .paypal-loading {
   display: flex;
   flex-direction: column;
@@ -382,7 +381,6 @@ button:disabled {
   margin: 1.5rem 0;
 }
 
-/* Error State */
 .payment-error {
   background-color: #ffebee;
   border-left: 4px solid #e74c3c;
@@ -396,7 +394,6 @@ button:disabled {
   margin-bottom: 0.5rem;
 }
 
-/* Buttons */
 .payment-cancel-button {
   background: none;
   border: 1px solid #ddd;
@@ -413,32 +410,7 @@ button:disabled {
   background-color: #f0f0f0;
 }
 
-.retry-button {
-  background-color: #0070ba;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-top: 0.5rem;
-}
-
-.retry-button:hover {
-  background-color: #005ea6;
-}
-
-/* Animation */
-.spin {
-  animation: spin 1s linear infinite;
-  display: inline-block;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Status Page Styles */
+/* ===== Status Page ===== */
 .status-page {
   max-width: 600px;
   margin: 2rem auto;
@@ -446,7 +418,7 @@ button:disabled {
   text-align: center;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .back-button {
@@ -464,7 +436,6 @@ button:disabled {
   background: #e0e0e0;
 }
 
-/* Enhance progress display */
 .status-page .progress-container {
   margin: 2rem 0;
 }
@@ -472,27 +443,4 @@ button:disabled {
 .status-page .progress-info {
   margin-top: 0.5rem;
   font-size: 1.1rem;
-}
-
-/* Payment Modal Updates */
-.payment-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.payment-modal-content {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  width: 90%;
-  max-width: 500px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
