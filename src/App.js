@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaSpinner, FaDownload, FaInfoCircle, FaTimes } from 'react-icons/fa';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import '/App.css
+import '/App.css';
 const API_BASE = window.location.protocol === 'https:' 
      ? 'https://factorial-backend.sliplane.app'
      : 'http://localhost:8000';
