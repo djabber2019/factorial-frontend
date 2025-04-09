@@ -341,6 +341,97 @@ const script = document.createElement('script');
         
         {loading && (
           <div className="paypal-loading">
+const PayPalPaymentModal = () => {
+  const [paypalSdkReady, setPaypalSdkReady] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const paypalButtonContainerRef = useRef(null);
+
+  // Load PayPal SDK
+  useEffect(() => {
+    if (window.paypal) {
+      setPaypalSdkReady(true);
+      setLoading(false);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=buttons,hosted-buttons&disable-funding=venmo&currency=USD`;
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    
+    script.onload = () => {
+      if (window.paypal) {
+        setPaypalSdkReady(true);
+      } else {
+        setError("PayPal SDK failed to load");
+      }
+      setLoading(false);
+    };
+
+    script.onerror = () => {
+      setError("Failed to load PayPal SDK");
+      setLoading(false);
+    };
+
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  // Render PayPal button when SDK is ready
+  useEffect(() => {
+    if (!paypalSdkReady || !paypalButtonContainerRef.current) return;
+
+    try {
+      window.paypal.HostedButtons({
+        hostedButtonId: HOSTED_BUTTON_ID,
+        onApprove: async (data, actions) => {
+          try {
+            setStatus('verifying_payment');
+            const response = await fetch(`${API_BASE}/capture-paypal-order`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                payment_id: data.orderID,
+                payer_id: data.payerID
+              })
+            });
+
+            if (!response.ok) throw new Error("Payment verification failed");
+            
+            const result = await response.json();
+            setJobId(result.job_id);
+            setStatus('processing');
+            setupEventStream(result.job_id);
+            setPaymentInfo(null);
+          } catch (err) {
+            setError(err.message);
+            setStatus('payment_pending');
+          }
+        },
+        onError: (err) => {
+          setError(err.message || "Payment processing failed");
+          setStatus('payment_pending');
+        }
+      }).render(paypalButtonContainerRef.current);
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [paypalSdkReady, paymentInfo]);
+
+  return (
+    <div className="payment-modal-overlay">
+      <div className="payment-modal-content">
+        <h3>Payment Required</h3>
+        <p className="payment-description">
+          Computation for n={paymentInfo.n} requires a payment of ${PAYMENT_AMOUNT_USD}
+        </p>
+        
+        {loading && (
+          <div className="paypal-loading">
             <FaSpinner className="spin" />
             <span>Loading payment options...</span>
           </div>
