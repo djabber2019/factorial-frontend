@@ -39,10 +39,7 @@ function ComputationStatusPage({ jobId, onBack }) {
       {status === 'complete' ? (
         <>
           <h3>Computation Complete!</h3>
-          <a             href={`${API_BASE}/download/${jobId}`}
-            className="download-button"
-            download
-          >
+          <a href={`${API_BASE}/download/${jobId}`} className="download-button" download>
             <FaDownload /> Download Result
           </a>
         </>
@@ -70,7 +67,6 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
   const formRef = useRef(null);
   const [jobId, setLocalJobId] = useState(null);
 
-  // Generate job ID when component mounts
   useEffect(() => {
     setLocalJobId(`job-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
   }, []);
@@ -80,11 +76,9 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
     setLoading(true);
     setError(null);
 
-    // Submit the form in a new tab
     const form = formRef.current;
     form.submit();
 
-    // Start polling for payment verification
     const pollInterval = setInterval(async () => {
       try {
         const response = await fetch(`${API_BASE}/capture-paypal-order`, {
@@ -103,18 +97,16 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
           setStatus('processing');
           setPaymentInfo(null);
           window.location.hash = `#status/${result.job_id}`;
-        } else if (response.status !== 402) {  // 402 means payment not yet verified
+        } else if (response.status !== 402) { 
           throw new Error(await response.text());
         }
       } catch (err) {
-        console.error('Payment verification error:', err);
         setError(err.message || "Payment verification failed");
         clearInterval(pollInterval);
         setLoading(false);
       }
-    }, 3000);  // Poll every 3 seconds
+    }, 3000);  
 
-    // Timeout after 5 minutes
     setTimeout(() => {
       clearInterval(pollInterval);
       setError("Payment verification timed out");
@@ -140,10 +132,7 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
         {error && (
           <div className="payment-error">
             <p>Error: {error}</p>
-            <button 
-              className="retry-button"
-              onClick={() => setError(null)}
-            >
+            <button className="retry-button" onClick={() => setError(null)}>
               Retry Payment
             </button>
           </div>
@@ -153,19 +142,25 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
           ref={formRef}
           action="https://www.paypal.com/cgi-bin/webscr" 
           method="post" 
-          target="_blank"
+          target="_top"
           onSubmit={handlePaymentSubmit}
         >
           <input type="hidden" name="cmd" value="_s-xclick" />
           <input type="hidden" name="hosted_button_id" value="SPTGWEPQYGYEE" />
+          <table>
+            <tr>
+              <td>
+                <input type="hidden" name="on0" value="setoN" />
+                setoN
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <input type="text" name="os0" maxLength="200" className="border px-2 py-1 w-full" />
+              </td>
+            </tr>
+          </table>
           <input type="hidden" name="currency_code" value="USD" />
-          <input type="hidden" name="custom" value={jobId} />
-          <input type="hidden" name="amount" value={PAYMENT_AMOUNT_USD} />
-          <input type="hidden" name="item_name" value={`Factorial Computation for n=${paymentInfo.n}`} />
-          <input type="hidden" name="notify_url" value={`${API_BASE}/ipn-listener`} />
-          <input type="hidden" name="return" value={`${window.location.origin}/#status/${jobId}`} />
-          <input type="hidden" name="cancel_return" value={window.location.origin} />
-          
           <input 
             type="image" 
             src="https://www.paypalobjects.com/en_US/i/btn/btn_paynowCC_LG.gif" 
@@ -198,7 +193,6 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
   );
 };
 
-
 export default function App() {
   const [input, setInput] = useState('');
   const [jobId, setJobId] = useState(null);
@@ -212,7 +206,6 @@ export default function App() {
   const timerRef = useRef(null);
   const logsEndRef = useRef(null);
 
-  // Handle hash routing for status page
   useEffect(() => {
     const handleHashChange = () => {
       const match = window.location.hash.match(/#status\/([a-z0-9-]+)/i);
@@ -223,7 +216,7 @@ export default function App() {
     };
     
     window.addEventListener('hashchange', handleHashChange);
-    handleHashChange(); // Check initial URL
+    handleHashChange();
     
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
@@ -300,171 +293,55 @@ export default function App() {
     eventSourceRef.current = es;
 
     es.onmessage = (e) => {
-      if (e.data.trim() === ": heartbeat") {
-        setProgress(prev => Math.min(prev + 1, 99));
+      if (e.data.includes('complete')) {
+        const data = JSON.parse(e.data);
+        setStatus('complete');
+      } else if (!isNaN(e.data)) {
+        setProgress(parseInt(e.data));
       }
     };
-
-    es.addEventListener('complete', (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        handleCompletion(data.size);
-        es.close();
-      } catch (err) {
-        handleError(new Error("Invalid completion data"));
-      }
-    });
-
-    es.addEventListener('error', () => {
-      handleError(new Error("Computation failed"));
-      es.close();
-    });
-  };
-
-  const handleCompletion = (size) => {
-    addLog(`Computation completed! Result size: ${(size/1024).toFixed(1)}KB`);
-    clearInterval(timerRef.current);
-    setStatus('complete');
-    setProgress(100);
-    toast.success(`Computation completed in ${timeElapsed}s`);
-  };
-
-  const handleError = (error) => {
-    addLog(`Error: ${error.message}`);
-    clearInterval(timerRef.current);
-    setStatus('error');
-    toast.error(error.message);
-  };
-
-  const clearLogs = () => {
-    setLogs([]);
-    addLog('Logs cleared');
   };
 
   return (
-    <div className="app-container">
-      {status === 'processing' && jobId ? (
+    <div className="app">
+      <h1>Factorial Computation</h1>
+      <div className="computation-input">
+        <input 
+          type="number" 
+          placeholder="Enter a number"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+        />
+        <button onClick={handleCompute}>Start Computation</button>
+      </div>
+
+      {status === 'payment_pending' && paymentInfo && (
+        <PayPalPaymentModal
+          paymentInfo={paymentInfo}
+          setPaymentInfo={setPaymentInfo}
+          setStatus={setStatus}
+          setJobId={setJobId}
+        />
+      )}
+
+      {status === 'processing' && jobId && (
         <ComputationStatusPage 
           jobId={jobId}
-          onBack={() => {
-            setStatus('idle');
-            setJobId(null);
-            window.location.hash = '';
-          }}
+          onBack={() => setStatus('idle')}
         />
-      ) : (
-        <>
-          <header className="app-header">
-            <h1><FaInfoCircle /> Factorial Calculator</h1>
-            <p>Compute massive factorials with distributed computing</p>
-          </header>
-
-          <div className="compute-card">
-            <div className="input-group">
-              {parseInt(input) > PAYMENT_THRESHOLD && status === 'idle' && (
-                <div className="payment-tooltip">
-                  Payment required for computations &gt; {PAYMENT_THRESHOLD}
-                </div>
-              )}
-
-              <input
-                type="number"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                min="1"
-                placeholder="Enter a positive integer"
-                disabled={status === 'processing'}
-              />
-
-              <button
-                onClick={handleCompute}
-                disabled={status === 'processing' || !input}
-              >
-                {status === 'processing' ? (
-                  <><FaSpinner className="spin" /> Computing...</>
-                ) : 'Calculate Factorial'}
-              </button>
-            </div>
-
-            {status === 'processing' && (
-              <div className="progress-container">
-                <div className="progress-bar" style={{ width: `${progress}%` }} />
-                <div className="progress-info">
-                  <span>Elapsed: {timeElapsed}s</span>
-                  <span>{progress}%</span>
-                </div>
-              </div>
-            )}
-
-            {status === 'complete' && jobId && (
-              <a
-                href={`${API_BASE}/download/${jobId}`}
-                className="download-button"
-                download
-              >
-                <FaDownload /> Download Result
-              </a>
-            )}
-
-            {status === 'error' && (
-              <button onClick={handleCompute} className="retry-button">
-                Retry Calculation
-              </button>
-            )}
-
-            <div className="logs-section">
-              <div className="logs-header">
-                <h3>Computation Logs</h3>
-                <div className="logs-controls">
-                  <button onClick={() => setShowLogs(!showLogs)}>
-                    {showLogs ? 'Hide' : 'Show'} Logs
-                  </button>
-                  <button onClick={clearLogs} title="Clear logs">
-                    <FaTimes />
-                  </button>
-                </div>
-              </div>
-              
-              {showLogs && (
-                <div className="logs-container">
-                  {logs.length > 0 ? (
-                    <>
-                      <div className="logs-content">
-                        {logs.map((log, index) => (
-                          <div key={index} className="log-entry">{log}</div>
-                        ))}
-                        <div ref={logsEndRef} />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="empty-logs">No logs available</div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {paymentInfo && (
-            <PayPalPaymentModal 
-              paymentInfo={paymentInfo}
-              setPaymentInfo={setPaymentInfo}
-              setStatus={setStatus}
-              setJobId={setJobId}
-            />
-          )}
-
-          <ToastContainer
-            position="bottom-right"
-            autoClose={5000}
-            hideProgressBar={false}
-            newestOnTop
-            closeOnClick
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-          />
-        </>
       )}
+
+      {showLogs && (
+        <div className="logs">
+          <button onClick={() => setShowLogs(false)}><FaTimes /></button>
+          <div className="logs-list">
+            {logs.map((log, idx) => <div key={idx}>{log}</div>)}
+            <div ref={logsEndRef}></div>
+          </div>
+        </div>
+      )}
+
+      <ToastContainer />
     </div>
   );
 }
