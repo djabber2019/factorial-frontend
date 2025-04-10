@@ -96,7 +96,7 @@ useEffect(() => {
           </button>
         </>
       ) : (
-           
+      <>
           <h3>Computing Factorial...</h3>
           <div className="progress-container">
             <div className="progress-bar" style={{ width: `${progress}%` }} />
