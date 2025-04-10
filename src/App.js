@@ -28,18 +28,28 @@ function ComputationStatusPage({ jobId, onBack }) {
         throw new Error(errorData.detail || 'Download failed');
       }
 
+      // Get filename from headers or generate one
+      const contentDisposition = response.headers.get('content-disposition');
+      const filename = contentDisposition 
+        ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+        : `factorial_${jobId}.txt`;
+
+      // Create blob from response
       const blob = await response.blob();
-      const filename = response.headers.get('content-disposition')
-        ?.split('filename=')[1] || `factorial_${jobId}.dat`;
       
+      // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
+      
+      // Cleanup
       window.URL.revokeObjectURL(url);
       a.remove();
+      
+      toast.success('Download started successfully');
     } catch (error) {
       toast.error(error.message || 'Failed to download result');
       console.error('Download error:', error);
@@ -47,7 +57,7 @@ function ComputationStatusPage({ jobId, onBack }) {
       setIsDownloading(false);
     }
   };
- useEffect(() => {
+useEffect(() => {
     eventSourceRef.current = new EventSource(`${API_BASE}/stream-status/${jobId}`);
     
     eventSourceRef.current.onmessage = (e) => {
@@ -63,7 +73,7 @@ function ComputationStatusPage({ jobId, onBack }) {
       eventSourceRef.current?.close();
     };
   }, [jobId]);
-  
+
   return (
     <div className="status-page">
       {status === 'complete' ? (
@@ -86,7 +96,7 @@ function ComputationStatusPage({ jobId, onBack }) {
           </button>
         </>
       ) : (
-      <>
+           
           <h3>Computing Factorial...</h3>
           <div className="progress-container">
             <div className="progress-bar" style={{ width: `${progress}%` }} />
