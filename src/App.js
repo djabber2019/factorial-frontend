@@ -39,8 +39,7 @@ function ComputationStatusPage({ jobId, onBack }) {
       {status === 'complete' ? (
         <>
           <h3>Computation Complete!</h3>
-          <a 
-            href={`${API_BASE}/download/${jobId}`}
+          <a             href={`${API_BASE}/download/${jobId}`}
             className="download-button"
             download
           >
@@ -66,97 +65,61 @@ function ComputationStatusPage({ jobId, onBack }) {
 }
 
 const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }) => {
-  const [paypalSdkReady, setPaypalSdkReady] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [lastTransactionId, setLastTransactionId] = useState(null);
+  const formRef = useRef(null);
+  const [jobId, setLocalJobId] = useState(null);
 
+  // Generate job ID when component mounts
   useEffect(() => {
-    if (window.paypal) {
-      setPaypalSdkReady(true);
-      setLoading(false);
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=buttons,hosted-buttons&disable-funding=venmo&currency=USD&intent=capture`;
-    script.async = true;
-    script.crossOrigin = "anonymous";
-    
-    script.onload = () => {
-      if (window.paypal) {
-        setPaypalSdkReady(true);
-        initializeButton();
-      } else {
-        setError("PayPal SDK failed to load");
-      }
-      setLoading(false);
-    };
-
-    script.onerror = () => {
-      setError("Failed to load PayPal SDK");
-      setLoading(false);
-    };
-
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
+    setLocalJobId(`job-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
   }, []);
 
-  const initializeButton = () => {
-    try {
-      window.paypal.HostedButtons({
-        hostedButtonId: HOSTED_BUTTON_ID,
-        onApprove: async (data, actions) => {
-          try {
-            setStatus('verifying_payment');
-            setLastTransactionId(data.orderID);
-            
-            // Extended verification period
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            
-            const response = await fetch(`${API_BASE}/capture-paypal-order`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                payment_id: data.orderID,
-                payer_id: data.payerID,
-                n: paymentInfo.n,
-                amount: PAYMENT_AMOUNT_USD
-              })
-            });
+  const handlePaymentSubmit = (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.detail || "Payment verification failed");
-            }
-            
-            const result = await response.json();
-            setJobId(result.job_id);
-            setStatus('processing');
-            setPaymentInfo(null);
-            
-            // Redirect to status page using hash router
-            window.location.hash = `#status/${result.job_id}`;
-            
-          } catch (err) {
-            console.error('Payment error:', err);
-            setError(err.message || "Payment processing failed. Please try again.");
-            setStatus('payment_pending');
-          }
-        },
-        onError: (err) => {
-          console.error('PayPal error:', err);
-          setError(err.message || "Payment processing failed. Please try again.");
-          setStatus('payment_pending');
+    // Submit the form in a new tab
+    const form = formRef.current;
+    form.submit();
+
+    // Start polling for payment verification
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`${API_BASE}/capture-paypal-order`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            job_id: jobId,
+            n: paymentInfo.n
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          clearInterval(pollInterval);
+          setJobId(result.job_id);
+          setStatus('processing');
+          setPaymentInfo(null);
+          window.location.hash = `#status/${result.job_id}`;
+        } else if (response.status !== 402) {  // 402 means payment not yet verified
+          throw new Error(await response.text());
         }
-      }).render("#paypal-button-container");
-    } catch (err) {
-      console.error('Button render error:', err);
-      setError("Failed to initialize payment button. Please refresh the page.");
-    }
+      } catch (err) {
+        console.error('Payment verification error:', err);
+        setError(err.message || "Payment verification failed");
+        clearInterval(pollInterval);
+        setLoading(false);
+      }
+    }, 3000);  // Poll every 3 seconds
+
+    // Timeout after 5 minutes
+    setTimeout(() => {
+      clearInterval(pollInterval);
+      setError("Payment verification timed out");
+      setLoading(false);
+    }, 300000);
   };
 
   return (
@@ -170,38 +133,56 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
         {loading && (
           <div className="paypal-loading">
             <FaSpinner className="spin" />
-            <span>Loading payment options...</span>
+            <span>Waiting for payment verification...</span>
           </div>
         )}
 
         {error && (
           <div className="payment-error">
             <p>Error: {error}</p>
-            {lastTransactionId && (
-              <p>Transaction ID: {lastTransactionId}</p>
-            )}
             <button 
               className="retry-button"
-              onClick={() => {
-                setError(null);
-                setLoading(true);
-                setPaypalSdkReady(false);
-              }}
+              onClick={() => setError(null)}
             >
               Retry Payment
             </button>
           </div>
         )}
 
+        <form 
+          ref={formRef}
+          action="https://www.paypal.com/cgi-bin/webscr" 
+          method="post" 
+          target="_blank"
+          onSubmit={handlePaymentSubmit}
+        >
+          <input type="hidden" name="cmd" value="_s-xclick" />
+          <input type="hidden" name="hosted_button_id" value="SPTGWEPQYGYEE" />
+          <input type="hidden" name="currency_code" value="USD" />
+          <input type="hidden" name="custom" value={jobId} />
+          <input type="hidden" name="amount" value={PAYMENT_AMOUNT_USD} />
+          <input type="hidden" name="item_name" value={`Factorial Computation for n=${paymentInfo.n}`} />
+          <input type="hidden" name="notify_url" value={`${API_BASE}/ipn-listener`} />
+          <input type="hidden" name="return" value={`${window.location.origin}/#status/${jobId}`} />
+          <input type="hidden" name="cancel_return" value={window.location.origin} />
+          
+          <input 
+            type="image" 
+            src="https://www.paypalobjects.com/en_US/i/btn/btn_paynowCC_LG.gif" 
+            border="0" 
+            name="submit" 
+            alt="Pay Now"
+            style={{ margin: '0 auto', display: 'block' }}
+          />
+        </form>
+
         <div className="customer-note">
           <div className="customer-note-title">Important Note:</div>
           <div className="customer-note-content">
-            Results will be delivered as a downloadable file. 
-            Large computations may take several minutes to complete.
+            After payment, you'll be redirected back to check your computation status.
+            Please don't close this window until verification completes.
           </div>
         </div>
-
-        <div id="paypal-button-container"></div>
 
         <button 
           className="payment-cancel-button"
@@ -216,6 +197,7 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
     </div>
   );
 };
+
 
 export default function App() {
   const [input, setInput] = useState('');
