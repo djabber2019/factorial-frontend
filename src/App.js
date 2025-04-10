@@ -15,49 +15,9 @@ const PAYMENT_AMOUNT_USD = process.env.REACT_APP_PAYMENT_AMOUNT_USD || 3.99;
 function ComputationStatusPage({ jobId, onBack }) {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('processing');
-  const [isDownloading, setIsDownloading] = useState(false);
   const eventSourceRef = useRef(null);
 
-  const handleDownload = async () => {
-    setIsDownloading(true);
-    try {
-      const response = await fetch(`${API_BASE}/jobs/${jobId}/download`);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Download failed');
-      }
-
-      // Get filename from headers or generate one
-      const contentDisposition = response.headers.get('content-disposition');
-      const filename = contentDisposition 
-        ? contentDisposition.split('filename=')[1].replace(/"/g, '')
-        : `factorial_${jobId}.txt`;
-
-      // Create blob from response
-      const blob = await response.blob();
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Cleanup
-      window.URL.revokeObjectURL(url);
-      a.remove();
-      
-      toast.success('Download started successfully');
-    } catch (error) {
-      toast.error(error.message || 'Failed to download result');
-      console.error('Download error:', error);
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-useEffect(() => {
+  useEffect(() => {
     eventSourceRef.current = new EventSource(`${API_BASE}/stream-status/${jobId}`);
     
     eventSourceRef.current.onmessage = (e) => {
@@ -79,24 +39,12 @@ useEffect(() => {
       {status === 'complete' ? (
         <>
           <h3>Computation Complete!</h3>
-          <button 
-            onClick={handleDownload} 
-            className="download-button"
-            disabled={isDownloading}
-          >
-            {isDownloading ? (
-              <>
-                <FaSpinner className="spin" /> Downloading...
-              </>
-            ) : (
-              <>
-                <FaDownload /> Download Result
-              </>
-            )}
-          </button>
+          <a href={`${API_BASE}/download/${jobId}`} className="download-button" download>
+            <FaDownload /> Download Result
+          </a>
         </>
       ) : (
-      <>
+        <>
           <h3>Computing Factorial...</h3>
           <div className="progress-container">
             <div className="progress-bar" style={{ width: `${progress}%` }} />
@@ -117,7 +65,7 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const formRef = useRef(null);
-  const [jobId, setLocalJobId] = useState(null);
+  const [localJobId, setLocalJobId] = useState(null);
 
   useEffect(() => {
     setLocalJobId(`job-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
@@ -137,7 +85,7 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            job_id: jobId,
+            job_id: localJobId,
             n: paymentInfo.n
           })
         });
@@ -250,6 +198,7 @@ export default function App() {
   const [status, setStatus] = useState('idle');
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState([]);
+  const [paymentInfo, setPaymentInfo] = useState(null);
   const eventSourceRef = useRef(null);
 
   useEffect(() => {
