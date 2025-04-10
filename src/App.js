@@ -15,9 +15,39 @@ const PAYMENT_AMOUNT_USD = process.env.REACT_APP_PAYMENT_AMOUNT_USD || 3.99;
 function ComputationStatusPage({ jobId, onBack }) {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('processing');
+  const [isDownloading, setIsDownloading] = useState(false);
   const eventSourceRef = useRef(null);
 
-  useEffect(() => {
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    try {
+      const response = await fetch(`${API_BASE}/jobs/${jobId}/download`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Download failed');
+      }
+
+      const blob = await response.blob();
+      const filename = response.headers.get('content-disposition')
+        ?.split('filename=')[1] || `factorial_${jobId}.dat`;
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (error) {
+      toast.error(error.message || 'Failed to download result');
+      console.error('Download error:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+ useEffect(() => {
     eventSourceRef.current = new EventSource(`${API_BASE}/stream-status/${jobId}`);
     
     eventSourceRef.current.onmessage = (e) => {
@@ -33,18 +63,30 @@ function ComputationStatusPage({ jobId, onBack }) {
       eventSourceRef.current?.close();
     };
   }, [jobId]);
-
+  
   return (
     <div className="status-page">
       {status === 'complete' ? (
         <>
           <h3>Computation Complete!</h3>
-          <a href={`${API_BASE}/download/${jobId}`} className="download-button" download>
-            <FaDownload /> Download Result
-          </a>
+          <button 
+            onClick={handleDownload} 
+            className="download-button"
+            disabled={isDownloading}
+          >
+            {isDownloading ? (
+              <>
+                <FaSpinner className="spin" /> Downloading...
+              </>
+            ) : (
+              <>
+                <FaDownload /> Download Result
+              </>
+            )}
+          </button>
         </>
       ) : (
-        <>
+      <>
           <h3>Computing Factorial...</h3>
           <div className="progress-container">
             <div className="progress-bar" style={{ width: `${progress}%` }} />
