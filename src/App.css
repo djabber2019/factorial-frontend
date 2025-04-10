@@ -252,3 +252,38 @@ button:disabled {
     font-size: 2rem;
   }
 }
+/* Add these styles to your App.css */
+
+.download-button {
+  background-color: var(--success);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  margin-top: 1rem;
+}
+
+.download-button:hover:not(:disabled) {
+  background-color: #0d9c6d;
+  transform: translateY(-1px);
+}
+
+.download-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
