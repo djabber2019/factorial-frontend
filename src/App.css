@@ -3,12 +3,19 @@
   /* Color Palette */
   --primary: #2563eb;
   --primary-dark: #1d4ed8;
+  --primary-light: #93c5fd;
   --secondary: #f59e0b;
+  --secondary-dark: #d97706;
   --success: #10b981;
+  --success-dark: #0d9c6d;
   --danger: #ef4444;
+  --danger-dark: #dc2626;
   --light: #f8fafc;
+  --light-gray: #e5e7eb;
+  --medium-gray: #9ca3af;
+  --dark-gray: #6b7280;
   --dark: #1e293b;
-  --gray: #94a3b8;
+  --white: #ffffff;
 
   /* Spacing */
   --space-xs: 0.5rem;
@@ -26,16 +33,25 @@
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.6;
   color: var(--dark);
   background-color: var(--light);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* Layout */
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--space-lg);
+}
+
+/* Typography */
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.25;
 }
 
 /* Header */
@@ -52,10 +68,10 @@ body {
 
 /* Computation Form */
 .compute-form {
-  background: white;
-  border-radius: 0.5rem;
+  background: var(--white);
+  border-radius: 0.75rem;
   padding: var(--space-lg);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   margin-bottom: var(--space-lg);
 }
 
@@ -67,82 +83,158 @@ label {
   display: block;
   margin-bottom: var(--space-xs);
   font-weight: 500;
+  color: var(--dark);
 }
 
 input[type="number"] {
   width: 100%;
   padding: var(--space-sm);
-  border: 1px solid var(--gray);
-  border-radius: 0.375rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 0.5rem;
   font-size: 1rem;
+  transition: border-color 0.2s;
 }
 
+input[type="number"]:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Buttons */
 button {
   background-color: var(--primary);
-  color: white;
+  color: var(--white);
   border: none;
   padding: var(--space-sm) var(--space-md);
-  border-radius: 0.375rem;
+  border-radius: 0.5rem;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-xs);
 }
 
 button:hover {
   background-color: var(--primary-dark);
   transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 button:disabled {
-  opacity: 0.7;
+  background-color: var(--medium-gray);
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Status Page */
-.status-container {
+.status-page {
   text-align: center;
-  padding: var(--space-xl) 0;
+  padding: var(--space-xl);
+  background: var(--white);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  max-width: 500px;
+  margin: var(--space-xl) auto;
 }
 
+.status-page h3 {
+  margin-bottom: var(--space-md);
+  color: var(--dark);
+  font-size: 1.5rem;
+}
+
+/* Progress Bar */
 .progress-container {
   margin: var(--space-lg) auto;
-  max-width: 500px;
-}
-
-.progress-bar {
-  height: 8px;
-  background-color: #e2e8f0;
-  border-radius: 4px;
+  max-width: 400px;
+  background-color: var(--light-gray);
+  border-radius: 0.5rem;
   overflow: hidden;
 }
 
-.progress-fill {
-  height: 100%;
-  background-color: var(--primary);
-  transition: width 0.3s ease;
+.progress-bar {
+  height: 10px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  transition: width 0.3s ease-out;
 }
 
-.progress-text {
-  margin-top: var(--space-sm);
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-xs);
   font-size: 0.875rem;
-  color: var(--gray);
+  color: var(--dark-gray);
 }
 
-.download-btn {
+/* Download Components */
+.download-container {
+  margin: var(--space-md) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.download-button {
   background-color: var(--success);
-  margin-top: var(--space-md);
+  color: var(--white);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-decoration: none;
+  min-width: 200px;
 }
 
-.download-btn:hover {
-  background-color: #0d9c6d;
+.download-button:hover:not(:disabled) {
+  background-color: var(--success-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.download-button:disabled {
+  background-color: var(--medium-gray);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.download-status {
+  font-size: 0.875rem;
+  color: var(--dark-gray);
+  min-height: 1.25rem;
+}
+
+.download-status.error {
+  color: var(--danger);
+}
+
+/* Spinner Animation */
+.spinner {
+  animation: spin 1s linear infinite;
+  margin-right: var(--space-xs);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Payment Modal */
-.payment-modal {
+.payment-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -155,45 +247,66 @@ button:disabled {
   z-index: 1000;
 }
 
-.modal-content {
-  background: white;
-  border-radius: 0.5rem;
+.payment-modal-content {
+  background: var(--white);
+  border-radius: 0.75rem;
   padding: var(--space-lg);
   max-width: 500px;
   width: 90%;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
-.modal-header {
+.payment-description {
+  color: var(--dark-gray);
   margin-bottom: var(--space-md);
+  font-size: 1.1rem;
+  text-align: center;
 }
 
-.modal-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--dark);
-}
-
-.modal-body {
-  margin-bottom: var(--space-md);
-}
-
-.paypal-button {
+.paypal-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--dark-gray);
   margin: var(--space-md) 0;
 }
 
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-sm);
+.payment-error {
+  background-color: #ffebee;
+  border-left: 4px solid var(--danger);
+  padding: var(--space-md);
+  margin: var(--space-md) 0;
+  border-radius: 0.375rem;
+  color: var(--danger);
 }
 
-.cancel-btn {
-  background-color: var(--gray);
+.payment-error p {
+  margin-bottom: var(--space-xs);
 }
 
-.cancel-btn:hover {
-  background-color: #7c8ba1;
+.retry-button {
+  background-color: var(--danger);
+}
+
+.retry-button:hover {
+  background-color: var(--danger-dark);
+}
+
+.payment-cancel-button {
+  background: none;
+  border: 1px solid var(--light-gray);
+  color: var(--dark-gray);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: var(--space-md);
+  width: 100%;
+}
+
+.payment-cancel-button:hover {
+  background-color: var(--light-gray);
 }
 
 /* Connection Status */
@@ -207,7 +320,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  background-color: white;
+  background-color: var(--white);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -233,16 +346,21 @@ button:disabled {
   background-color: var(--danger);
 }
 
-/* Animations */
-@keyframes spin {
-  to { transform: rotate(360deg); }
+/* Toast Notifications */
+.Toastify__toast {
+  border-radius: 0.5rem !important;
+  font-family: 'Inter', sans-serif !important;
 }
 
-.spinner {
-  animation: spin 1s linear infinite;
+.Toastify__toast--success {
+  background: var(--success) !important;
 }
 
-/* Responsive */
+.Toastify__toast--error {
+  background: var(--danger) !important;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
   .container {
     padding: var(--space-md);
@@ -251,88 +369,60 @@ button:disabled {
   .header h1 {
     font-size: 2rem;
   }
-}
-/* Add these styles to your App.css */
-
-.download-button {
-  background-color: var(--success);
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.375rem;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  margin-top: 1rem;
+  
+  .status-page {
+    padding: var(--space-lg);
+    margin: var(--space-lg) auto;
+  }
+  
+  .download-button {
+    padding: var(--space-sm) var(--space-md);
+    min-width: 180px;
+  }
 }
 
-.download-button:hover:not(:disabled) {
-  background-color: #0d9c6d;
-  transform: translateY(-1px);
+@media (max-width: 480px) {
+  .container {
+    padding: var(--space-md);
+  }
+  
+  .status-page {
+    padding: var(--space-md);
+    margin: var(--space-md) auto;
+    border-radius: 0.5rem;
+  }
+  
+  .download-button {
+    width: 100%;
+    padding: var(--space-sm);
+  }
+  
+  .payment-modal-content {
+    padding: var(--space-md);
+  }
 }
 
-.download-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Download button styles */
-.download-button {
-  background-color: #10b981;
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.375rem;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  margin-top: 1rem;
-}
-
-.download-button:hover:not(:disabled) {
-  background-color: #0d9c6d;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.download-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-/* Spinner animation */
-.spin {
-  animation: spin 1s linear infinite;
-  margin-right: 0.5rem;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Status page layout */
-.status-page {
-  text-align: center;
-  padding: 2rem;
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  max-width: 500px;
-  margin: 2rem auto;
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #121212;
+    color: #f1f1f1;
+  }
+  
+  .compute-form,
+  .status-page,
+  .payment-modal-content {
+    background-color: #1e1e1e;
+    color: #f1f1f1;
+  }
+  
+  input[type="number"] {
+    background-color: #2d2d2d;
+    color: #f1f1f1;
+    border-color: #444;
+  }
+  
+  label {
+    color: #f1f1f1;
+  }
 }
