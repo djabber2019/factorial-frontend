@@ -8,7 +8,7 @@ const API_BASE = window.location.protocol === 'https:'
      ? 'https://factorial-backend.sliplane.app'
      : 'http://localhost:8000';
 const PAYPAL_CLIENT_ID = "BAA2USkJ7PqGA-AJEak7ATUaCGP5_DJjBeN9HQcAYYO-8fuEpikivrvWxtJaWnOze7Fee0pmBu18mJIVQY";
-const HOSTED_BUTTON_ID = "82CSUH5M9G9YN";
+const HOSTED_BUTTON_ID = "SPTGWEPQYGYEE"; // Corrected button ID
 const PAYMENT_THRESHOLD = process.env.REACT_APP_PAYMENT_THRESHOLD || 1000;
 const PAYMENT_AMOUNT_USD = process.env.REACT_APP_PAYMENT_AMOUNT_USD || 3.99;
 
@@ -145,17 +145,19 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
           onSubmit={handlePaymentSubmit}
         >
           <input type="hidden" name="cmd" value="_s-xclick" />
-          <input type="hidden" name="hosted_button_id" value="SPTGWEPQYGYEE" />
+          <input type="hidden" name="hosted_button_id" value={HOSTED_BUTTON_ID} />
+          <input type="hidden" name="custom" value={localJobId} />
           <table>
             <tr>
               <td>
-                <input type="hidden" name="on0" value="setoN" />
-                setoN
+                <input type="hidden" name="on0" value="Factorial Computation" />
+                Factorial Computation for:
               </td>
             </tr>
             <tr>
               <td>
-                <input type="text" name="os0" maxLength="200" className="border px-2 py-1 w-full" />
+                <input type="hidden" name="os0" value={paymentInfo.n} />
+                <div className="computation-value-display">n = {paymentInfo.n}</div>
               </td>
             </tr>
           </table>
