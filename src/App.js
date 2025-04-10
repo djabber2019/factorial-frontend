@@ -96,7 +96,6 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
           setJobId(result.job_id);
           setStatus('processing');
           setPaymentInfo(null);
-          window.location.hash = `#status/${result.job_id}`;
         } else if (response.status !== 402) { 
           throw new Error(await response.text());
         }
@@ -198,13 +197,8 @@ export default function App() {
   const [jobId, setJobId] = useState(null);
   const [status, setStatus] = useState('idle');
   const [progress, setProgress] = useState(0);
-  const [timeElapsed, setTimeElapsed] = useState(0);
-  const [paymentInfo, setPaymentInfo] = useState(null);
   const [logs, setLogs] = useState([]);
-  const [showLogs, setShowLogs] = useState(false);
   const eventSourceRef = useRef(null);
-  const timerRef = useRef(null);
-  const logsEndRef = useRef(null);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -224,7 +218,6 @@ export default function App() {
   const addLog = (message) => {
     const timestamp = new Date().toLocaleTimeString();
     setLogs(prev => [...prev, `${timestamp}: ${message}`]);
-    setTimeout(() => logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
   const handleCompute = async () => {
@@ -239,7 +232,6 @@ export default function App() {
 
     addLog(`Computation initiated for n=${num}`);
     setStatus(num > PAYMENT_THRESHOLD ? 'payment_pending' : 'processing');
-    setTimeElapsed(0);
 
     if (num <= PAYMENT_THRESHOLD) {
       await startComputation(num);
@@ -256,15 +248,6 @@ export default function App() {
     addLog(`Initializing computation for n=${num}`);
     setStatus('processing');
     setProgress(0);
-    clearInterval(timerRef.current);
-    
-    timerRef.current = setInterval(() => {
-      setTimeElapsed(prev => {
-        if (prev % 5 === 0) addLog(`Computation in progress (${prev}s elapsed)`);
-        return prev + 1;
-      });
-    }, 1000);
-
     try {
       const response = await fetch(`${API_BASE}/compute`, {
         method: "POST",
@@ -283,7 +266,6 @@ export default function App() {
       setupEventStream(data.job_id);
     } catch (error) {
       addLog(`Error: ${error.message}`);
-      handleError(error);
     }
   };
 
@@ -329,16 +311,6 @@ export default function App() {
           jobId={jobId}
           onBack={() => setStatus('idle')}
         />
-      )}
-
-      {showLogs && (
-        <div className="logs">
-          <button onClick={() => setShowLogs(false)}><FaTimes /></button>
-          <div className="logs-list">
-            {logs.map((log, idx) => <div key={idx}>{log}</div>)}
-            <div ref={logsEndRef}></div>
-          </div>
-        </div>
       )}
 
       <ToastContainer />
