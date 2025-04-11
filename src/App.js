@@ -86,6 +86,7 @@ script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}
   &enable-funding=card`;  // Add this to enable card payments
 script.async = true;
 script.crossOrigin = "anonymous";
+
     script.onload = () => {
       if (window.paypal) {
         setPaypalSdkReady(true);
