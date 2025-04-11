@@ -78,11 +78,14 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
       return;
     }
 
-    const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=buttons,hosted-buttons&disable-funding=venmo&currency=USD&intent=capture`;
-    script.async = true;
-    script.crossOrigin = "anonymous";
-    
+const script = document.createElement('script');
+script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}
+  &components=buttons,hosted-buttons
+  &currency=USD
+  &intent=capture
+  &enable-funding=card`;  // Add this to enable card payments
+script.async = true;
+script.crossOrigin = "anonymous";
     script.onload = () => {
       if (window.paypal) {
         setPaypalSdkReady(true);
@@ -106,10 +109,18 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
   }, []);
 
   const initializeButton = () => {
-    try {
-      window.paypal.HostedButtons({
-        hostedButtonId: HOSTED_BUTTON_ID,
-        onApprove: async (data, actions) => {
+  try {
+    window.paypal.HostedButtons({
+      hostedButtonId: HOSTED_BUTTON_ID,
+      onInit: (data, actions) => {
+        // Configure the hosted button behavior
+        actions.configure({
+          flow: 'checkout',  // More direct payment flow
+          enableShippingAddress: false,  // Disable address collection
+          userAction: 'pay_now'  // Skip review step
+        });
+      }, 
+     onApprove: async (data, actions) => {
           try {
             setStatus('verifying_payment');
             setLastTransactionId(data.orderID);
