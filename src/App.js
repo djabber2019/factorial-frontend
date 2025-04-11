@@ -112,14 +112,14 @@ script.crossOrigin = "anonymous";
   try {
     window.paypal.HostedButtons({
       hostedButtonId: HOSTED_BUTTON_ID,
-      onInit: (data, actions) => {
+    //  onInit: (data, actions) => {
         // Configure the hosted button behavior
-        actions.configure({
-          flow: 'checkout',  // More direct payment flow
-          enableShippingAddress: false,  // Disable address collection
-          userAction: 'pay_now'  // Skip review step
-        });
-      }, 
+       // actions.configure({
+         // flow: 'checkout',  // More direct payment flow
+         // enableShippingAddress: false,  // Disable address collection
+          //userAction: 'pay_now'  // Skip review step
+      //  });
+     // }, 
      onApprove: async (data, actions) => {
           try {
             setStatus('verifying_payment');
