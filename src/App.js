@@ -79,15 +79,11 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
     }
 
 const script = document.createElement('script');
-script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}
-  &components=buttons,hosted-buttons
-  &currency=USD
-  &intent=capture
-  &enable-funding=card`;  // Add this to enable card payments
+script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=buttons,hosted-buttons&disable-funding=venmo&currency=USD&intent=capture`;
 script.async = true;
-script.crossOrigin = "anonymous";
-
-    script.onload = () => {
+script.crossOrigin = "anonymous";  // Add this to enable card payments
+       
+script.onload = () => {
       if (window.paypal) {
         setPaypalSdkReady(true);
         initializeButton();
@@ -97,15 +93,15 @@ script.crossOrigin = "anonymous";
       setLoading(false);
     };
 
-    script.onerror = () => {
+script.onerror = () => {
       setError("Failed to load PayPal SDK");
       setLoading(false);
     };
 
-    document.body.appendChild(script);
+document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+     document.body.removeChild(script);
     };
   }, []);
 
