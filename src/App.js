@@ -8,7 +8,7 @@ const API_BASE = window.location.protocol === 'https:'
      ? 'https://factorial-backend.sliplane.app'
      : 'http://localhost:8000';
 const PAYPAL_CLIENT_ID = "Aee8X8eVx-SCFL1sOeACxyozvwhpzNFKzQlbZbzAviLrB3YGkHUR_z1YFQYyg1i6iC2ultefi-BXHnPW";
-const HOSTED_BUTTON_ID = "SPTGWEPQYGYEE"; // Corrected button ID
+const HOSTED_BUTTON_ID = "9EUNPRHJB3SNQ"; // Corrected button ID
 const PAYMENT_THRESHOLD = process.env.REACT_APP_PAYMENT_THRESHOLD || 1000;
 const PAYMENT_AMOUNT_USD = process.env.REACT_APP_PAYMENT_AMOUNT_USD || 4.99;
 
