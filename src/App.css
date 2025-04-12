@@ -466,3 +466,35 @@ button:disabled {
 .payment-instructions li {
   margin-bottom: 5px;
 }
+
+.payment-confirmation-toast {
+  padding: 10px;
+}
+
+.payment-confirmation-toast h4 {
+  margin: 0 0 10px 0;
+  color: #28a745;
+}
+
+.toast-details {
+  background: rgba(0,0,0,0.05);
+  padding: 8px;
+  border-radius: 4px;
+  margin: 8px 0;
+  font-size: 0.9em;
+}
+
+.toast-details p {
+  margin: 4px 0;
+  word-break: break-all;
+}
+
+.toast-retry-button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  margin-top: 8px;
+  cursor: pointer;
+}
