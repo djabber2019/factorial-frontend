@@ -156,7 +156,7 @@ onApprove: async (data) => {
     setError(err.message);
     setStatus('payment_failed');
   }
-};
+}
 
   return (
     <div className="payment-modal-overlay">
