@@ -90,10 +90,11 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
         return;
       }
 
-      const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`;
-      script.async = true;
-      
+const script = document.createElement('script');
+script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=buttons,hosted-buttons&disable-funding=venmo&currency=USD&intent=capture`;
+script.async = true;
+script.crossOrigin = "anonymous";  // Add this to enable card payments
+       
       script.onload = () => {
         if (window.paypal) {
           initializeButton();
