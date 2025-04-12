@@ -200,16 +200,17 @@ document.body.appendChild(script);
             </button>
           </div>
         )}
+  
+  <div className="payment-instructions">
+    <p>After successful payment:</p>
+    <ul>
+      <li>You'll be automatically redirected to the computation status page</li>
+      <li>Results will be delivered as a downloadable file</li>
+      <li>Large computations may take several minutes</li>
+    </ul>
+  </div>
 
-        <div className="customer-note">
-          <div className="customer-note-title">Important Note:</div>
-          <div className="customer-note-content">
-            Results will be delivered as a downloadable file. 
-            Large computations may take several minutes to complete.
-          </div>
-        </div>
-
-        <div id="paypal-button-container"></div>
+  <div id="paypal-button-container"></div>
 
         <button 
           className="payment-cancel-button"
