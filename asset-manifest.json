@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/factorial-frontend/static/css/main.7606017e.css",
-    "main.js": "/factorial-frontend/static/js/main.88e16e87.js",
+    "main.js": "/factorial-frontend/static/js/main.bda1cbf3.js",
     "index.html": "/factorial-frontend/index.html",
     "main.7606017e.css.map": "/factorial-frontend/static/css/main.7606017e.css.map",
-    "main.88e16e87.js.map": "/factorial-frontend/static/js/main.88e16e87.js.map"
+    "main.bda1cbf3.js.map": "/factorial-frontend/static/js/main.bda1cbf3.js.map"
   },
   "entrypoints": [
     "static/css/main.7606017e.css",
-    "static/js/main.88e16e87.js"
+    "static/js/main.bda1cbf3.js"
   ]
 }
