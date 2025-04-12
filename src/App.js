@@ -118,43 +118,95 @@ document.body.appendChild(script);
       //  });
      // }, 
      onApprove: async (data, actions) => {
-          try {
-            setStatus('verifying_payment');
-            setLastTransactionId(data.orderID);
-            
-            // Extended verification period
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            
-            const response = await fetch(`${API_BASE}/capture-paypal-order`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                payment_id: data.orderID,
-                payer_id: data.payerID,
-                n: paymentInfo.n,
-                amount: PAYMENT_AMOUNT_USD
-              })
-            });
+  try {
+    setStatus('verifying_payment');
+    setLastTransactionId(data.orderID);
+    
+    // Show immediate feedback while verifying
+    toast.info(
+      <div>
+        <p>Verifying payment...</p>
+        <small>Transaction ID: {data.orderID}</small>
+      </div>,
+      { autoClose: false, toastId: 'payment-verification' }
+    );
 
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.detail || "Payment verification failed");
-            }
-            
-            const result = await response.json();
-            setJobId(result.job_id);
-            setStatus('processing');
-            setPaymentInfo(null);
-            
-            // Redirect to status page using hash router
-            window.location.hash = `#status/${result.job_id}`;
-            
-          } catch (err) {
-            console.error('Payment error:', err);
-            setError(err.message || "Payment processing failed. Please try again.");
-            setStatus('payment_pending');
-          }
-        },
+    // Extended verification period (keep your existing 3s delay)
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    const response = await fetch(`${API_BASE}/capture-paypal-order`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        payment_id: data.orderID,
+        payer_id: data.payerID,
+        n: paymentInfo.n,
+        amount: PAYMENT_AMOUNT_USD
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Payment verification failed");
+    }
+    
+    const result = await response.json();
+    
+    // Dismiss the verification toast
+    toast.dismiss('payment-verification');
+    
+    // Show success confirmation
+    toast.success(
+      <div className="payment-confirmation-toast">
+        <h4>Payment Confirmed!</h4>
+        <p>Your factorial computation for n={paymentInfo.n} has started.</p>
+        <div className="toast-details">
+          <p><strong>Transaction ID:</strong> {data.orderID}</p>
+          <p><strong>Job ID:</strong> {result.job_id}</p>
+        </div>
+        <p>Redirecting to status page...</p>
+      </div>,
+      { 
+        autoClose: 5000,
+        closeButton: false
+      }
+    );
+
+    setJobId(result.job_id);
+    setStatus('processing');
+    setPaymentInfo(null);
+    
+    // Add slight delay before redirect for better UX
+    setTimeout(() => {
+      window.location.hash = `#status/${result.job_id}`;
+    }, 1500);
+    
+  } catch (err) {
+    console.error('Payment error:', err);
+    // Dismiss any existing toasts
+    toast.dismiss('payment-verification');
+    
+    // Show detailed error
+    toast.error(
+      <div>
+        <p>Payment processing failed</p>
+        <p><small>{err.message}</small></p>
+        <button 
+          className="toast-retry-button"
+          onClick={() => {
+            // Retry logic if needed
+          }}
+        >
+          Try Again
+        </button>
+      </div>,
+      { autoClose: false }
+    );
+    
+    setError(err.message || "Payment processing failed. Please try again.");
+    setStatus('payment_pending');
+  }
+},
         onError: (err) => {
           console.error('PayPal error:', err);
           setError(err.message || "Payment processing failed. Please try again.");
