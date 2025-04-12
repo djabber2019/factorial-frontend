@@ -121,7 +121,9 @@ document.body.appendChild(script);
   try {
     setStatus('verifying_payment');
     setLastTransactionId(data.orderID);
-    
+    if (window.opener) {
+            window.close();
+    }
     // Show immediate feedback while verifying
     toast.info(
       <div>
