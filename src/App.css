@@ -444,3 +444,25 @@ button:disabled {
   margin-top: 0.5rem;
   font-size: 1.1rem;
 }
+
+.payment-instructions {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 15px 0;
+  border-left: 4px solid #17a2b8;
+}
+
+.payment-instructions p {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.payment-instructions ul {
+  padding-left: 20px;
+  margin: 0;
+}
+
+.payment-instructions li {
+  margin-bottom: 5px;
+}
