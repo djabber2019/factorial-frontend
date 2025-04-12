@@ -13,16 +13,31 @@ const PAYMENT_THRESHOLD = process.env.REACT_APP_PAYMENT_THRESHOLD || 1000;
 const PAYMENT_AMOUNT_USD = process.env.REACT_APP_PAYMENT_AMOUNT_USD || 4.99;
 
 function ComputationStatusPage({ jobId, onBack }) {
-  const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('processing');
+  const [progress, setProgress] = useState(0);
   const eventSourceRef = useRef(null);
 
   useEffect(() => {
+    // Check initial status
+    const checkStatus = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/job/${jobId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'complete') setStatus('complete');
+        }
+      } catch (err) {
+        console.error('Status check failed:', err);
+      }
+    };
+
+    checkStatus();
+
+    // Set up progress updates
     eventSourceRef.current = new EventSource(`${API_BASE}/stream-status/${jobId}`);
     
     eventSourceRef.current.onmessage = (e) => {
       if (e.data.includes('complete')) {
-        const data = JSON.parse(e.data);
         setStatus('complete');
       } else if (!isNaN(e.data)) {
         setProgress(parseInt(e.data));
@@ -42,7 +57,7 @@ function ComputationStatusPage({ jobId, onBack }) {
           <a 
             href={`${API_BASE}/download/${jobId}`}
             className="download-button"
-            download
+            download={`factorial_${jobId}.txt`}
           >
             <FaDownload /> Download Result
           </a>
@@ -64,160 +79,83 @@ function ComputationStatusPage({ jobId, onBack }) {
     </div>
   );
 }
-
 const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }) => {
-  const [paypalSdkReady, setPaypalSdkReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [lastTransactionId, setLastTransactionId] = useState(null);
 
   useEffect(() => {
-    if (window.paypal) {
-      setPaypalSdkReady(true);
-      setLoading(false);
-      return;
-    }
-
-const script = document.createElement('script');
-script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=buttons,hosted-buttons&disable-funding=venmo&currency=USD&intent=capture`;
-script.async = true;
-script.crossOrigin = "anonymous";  // Add this to enable card payments
-       
-script.onload = () => {
+    const loadPayPal = async () => {
       if (window.paypal) {
-        setPaypalSdkReady(true);
         initializeButton();
-      } else {
-        setError("PayPal SDK failed to load");
+        return;
       }
-      setLoading(false);
+
+      const script = document.createElement('script');
+      script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`;
+      script.async = true;
+      
+      script.onload = () => {
+        if (window.paypal) {
+          initializeButton();
+        } else {
+          setError("PayPal SDK failed to load");
+        }
+        setLoading(false);
+      };
+
+      script.onerror = () => {
+        setError("Failed to load PayPal SDK");
+        setLoading(false);
+      };
+
+      document.body.appendChild(script);
+      return () => document.body.removeChild(script);
     };
 
-script.onerror = () => {
-      setError("Failed to load PayPal SDK");
-      setLoading(false);
-    };
-
-document.body.appendChild(script);
-
-    return () => {
-     document.body.removeChild(script);
-    };
+    loadPayPal();
   }, []);
 
   const initializeButton = () => {
-  try {
-    window.paypal.HostedButtons({
-      hostedButtonId: HOSTED_BUTTON_ID,
-    //  onInit: (data, actions) => {
-        // Configure the hosted button behavior
-       // actions.configure({
-         // flow: 'checkout',  // More direct payment flow
-         // enableShippingAddress: false,  // Disable address collection
-          //userAction: 'pay_now'  // Skip review step
-      //  });
-     // }, 
-     onApprove: async (data, actions) => {
-  try {
-    setStatus('verifying_payment');
-    setLastTransactionId(data.orderID);
-    if (window.opener) {
-            window.close();
-    }
-    // Show immediate feedback while verifying
-    toast.info(
-      <div>
-        <p>Verifying payment...</p>
-        <small>Transaction ID: {data.orderID}</small>
-      </div>,
-      { autoClose: false, toastId: 'payment-verification' }
-    );
+    try {
+      window.paypal.HostedButtons({
+        hostedButtonId: HOSTED_BUTTON_ID,
+        onApprove: async (data) => {
+          try {
+            setStatus('verifying_payment');
+            
+            const response = await fetch(`${API_BASE}/capture-paypal-order`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                payment_id: data.orderID,
+                payer_id: data.payerID,
+                n: paymentInfo.n,
+                amount: PAYMENT_AMOUNT_USD.toFixed(2)
+              })
+            });
 
-    // Extended verification period (keep your existing 3s delay)
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    const response = await fetch(`${API_BASE}/capture-paypal-order`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        payment_id: data.orderID,
-        payer_id: data.payerID,
-        n: paymentInfo.n,
-        amount: PAYMENT_AMOUNT_USD
-      })
-    });
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.detail || "Payment verification failed");
+            }
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || "Payment verification failed");
-    }
-    
-    const result = await response.json();
-    
-    // Dismiss the verification toast
-    toast.dismiss('payment-verification');
-    
-    // Show success confirmation
-    toast.success(
-      <div className="payment-confirmation-toast">
-        <h4>Payment Confirmed!</h4>
-        <p>Your factorial computation for n={paymentInfo.n} has started.</p>
-        <div className="toast-details">
-          <p><strong>Transaction ID:</strong> {data.orderID}</p>
-          <p><strong>Job ID:</strong> {result.job_id}</p>
-        </div>
-        <p>Redirecting to status page...</p>
-      </div>,
-      { 
-        autoClose: 5000,
-        closeButton: false
-      }
-    );
-
-    setJobId(result.job_id);
-    setStatus('processing');
-    setPaymentInfo(null);
-    
-    // Add slight delay before redirect for better UX
-    setTimeout(() => {
-      window.location.hash = `#status/${result.job_id}`;
-    }, 1500);
-    
-  } catch (err) {
-    console.error('Payment error:', err);
-    // Dismiss any existing toasts
-    toast.dismiss('payment-verification');
-    
-    // Show detailed error
-    toast.error(
-      <div>
-        <p>Payment processing failed</p>
-        <p><small>{err.message}</small></p>
-        <button 
-          className="toast-retry-button"
-          onClick={() => {
-            // Retry logic if needed
-          }}
-        >
-          Try Again
-        </button>
-      </div>,
-      { autoClose: false }
-    );
-    
-    setError(err.message || "Payment processing failed. Please try again.");
-    setStatus('payment_pending');
-  }
-},
+            const result = await response.json();
+            window.location.href = `${window.location.origin}/#status/${result.job_id}`;
+            
+          } catch (err) {
+            console.error('Payment error:', err);
+            setError(err.message);
+            setStatus('payment_failed');
+          }
+        },
         onError: (err) => {
           console.error('PayPal error:', err);
-          setError(err.message || "Payment processing failed. Please try again.");
-          setStatus('payment_pending');
+          setError(err.message || "Payment processing failed");
         }
       }).render("#paypal-button-container");
     } catch (err) {
       console.error('Button render error:', err);
-      setError("Failed to initialize payment button. Please refresh the page.");
+      setError("Failed to initialize payment button");
     }
   };
 
@@ -225,47 +163,13 @@ document.body.appendChild(script);
     <div className="payment-modal-overlay">
       <div className="payment-modal-content">
         <h3>Payment Required</h3>
-        <p className="payment-description">
-          Computation for n={paymentInfo.n} requires a payment of ${PAYMENT_AMOUNT_USD}
-        </p>
+        <p>Computation for n={paymentInfo.n} requires payment of ${PAYMENT_AMOUNT_USD}</p>
         
-        {loading && (
-          <div className="paypal-loading">
-            <FaSpinner className="spin" />
-            <span>Loading payment options...</span>
-          </div>
-        )}
-
-        {error && (
-          <div className="payment-error">
-            <p>Error: {error}</p>
-            {lastTransactionId && (
-              <p>Transaction ID: {lastTransactionId}</p>
-            )}
-            <button 
-              className="retry-button"
-              onClick={() => {
-                setError(null);
-                setLoading(true);
-                setPaypalSdkReady(false);
-              }}
-            >
-              Retry Payment
-            </button>
-          </div>
-        )}
-  
-  <div className="payment-instructions">
-    <p>After successful payment:</p>
-    <ul>
-      <li>You'll be automatically redirected to the computation status page</li>
-      <li>Results will be delivered as a downloadable file</li>
-      <li>Large computations may take several minutes</li>
-    </ul>
-  </div>
-
-  <div id="paypal-button-container"></div>
-
+        {loading && <div className="paypal-loading">Loading payment options...</div>}
+        {error && <div className="payment-error">Error: {error}</div>}
+        
+        <div id="paypal-button-container"></div>
+        
         <button 
           className="payment-cancel-button"
           onClick={() => {
@@ -293,6 +197,23 @@ export default function App() {
   const timerRef = useRef(null);
   const logsEndRef = useRef(null);
 
+     // Add this right after your existing hash routing useEffect
+useEffect(() => {
+  // Handle PayPal return with transaction ID
+  const params = new URLSearchParams(window.location.search);
+  const txId = params.get('tx');
+  
+  if (txId && window.location.hash.includes('#status')) {
+    // Verify payment and update status
+    fetch(`${API_BASE}/verify-payment/${jobId}?tx=${txId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'complete') {
+          setStatus('complete');
+        }
+      });
+  }
+}, [jobId]);
   // Handle hash routing for status page
   useEffect(() => {
     const handleHashChange = () => {
@@ -316,29 +237,21 @@ export default function App() {
   };
 
   const handleCompute = async () => {
-    addLog(`Starting computation for input: ${input}`);
-    const num = parseInt(input);
-    
-    if (isNaN(num) || num <= 0) {
-      addLog(`Invalid input detected: ${input}`);
-      toast.error("Please enter a valid positive number");
-      return;
-    }
+  const num = parseInt(input);
+  
+  if (isNaN(num) || num <= 0) {
+    toast.error("Please enter a valid positive number");
+    return;
+  }
 
-    addLog(`Computation initiated for n=${num}`);
-    setStatus(num > PAYMENT_THRESHOLD ? 'payment_pending' : 'processing');
-    setTimeElapsed(0);
-
-    if (num <= PAYMENT_THRESHOLD) {
-      await startComputation(num);
-    } else {
-      setPaymentInfo({ 
-        amount: PAYMENT_AMOUNT_USD, 
-        n: num,
-        threshold: PAYMENT_THRESHOLD
-      });
-    }
-  };
+  if (num > PAYMENT_THRESHOLD) {
+    setPaymentInfo({ n: num, amount: PAYMENT_AMOUNT_USD });
+    setStatus('payment_pending');
+    return;
+  }
+  
+  await startComputation(num);
+};
 
   const startComputation = async (num) => {
     addLog(`Initializing computation for n=${num}`);
