@@ -85,6 +85,7 @@ useEffect(() => {
     </div>
   );
 }
+  
 const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -96,11 +97,11 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
         return;
       }
 
-const script = document.createElement('script');
-script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=buttons,hosted-buttons&disable-funding=venmo&currency=USD&intent=capture`;
-script.async = true;
-script.crossOrigin = "anonymous";  // Add this to enable card payments
-       
+      const script = document.createElement('script');
+      script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&components=buttons,hosted-buttons&disable-funding=venmo&currency=USD&intent=capture`;
+      script.async = true;
+      script.crossOrigin = "anonymous";
+
       script.onload = () => {
         if (window.paypal) {
           initializeButton();
@@ -126,37 +127,40 @@ script.crossOrigin = "anonymous";  // Add this to enable card payments
     try {
       window.paypal.HostedButtons({
         hostedButtonId: HOSTED_BUTTON_ID,
-        // Replace your existing PayPal onApprove handler with this:
-onApprove: async (data) => {
-  try {
-    setStatus('verifying_payment');
-    
-    const response = await fetch(`${API_BASE}/capture-paypal-order`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        payment_id: data.orderID,
-        payer_id: data.payerID,
-        n: paymentInfo.n,
-        amount: PAYMENT_AMOUNT_USD.toFixed(2)
-      })
-    });
+        onApprove: async (data) => {
+          try {
+            setStatus('verifying_payment');
+            
+            const response = await fetch(`${API_BASE}/capture-paypal-order`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                payment_id: data.orderID,
+                payer_id: data.payerID,
+                n: paymentInfo.n,
+                amount: PAYMENT_AMOUNT_USD.toFixed(2)
+              })
+            });
 
-    if (!response.ok) throw new Error("Payment verification failed");
-    
-    const result = await response.json();
-    
-    // Store job ID in localStorage as fallback
-    localStorage.setItem('pendingJobId', result.job_id);
-    
-    // Redirect with both job_id and transaction ID
-    window.location.href = `${window.location.origin}/#status/${result.job_id}?tx=${data.orderID}`;
-    
-  } catch (err) {
-    setError(err.message);
-    setStatus('payment_failed');
-  }
-}
+            if (!response.ok) throw new Error("Payment verification failed");
+            
+            const result = await response.json();
+            
+            localStorage.setItem('pendingJobId', result.job_id);
+            window.location.href = `${window.location.origin}/#status/${result.job_id}?tx=${data.orderID}`;
+            
+          } catch (err) {
+            setError(err.message);
+            setStatus('payment_failed');
+          }
+        }
+      }).render("#paypal-button-container");
+    } catch (err) {
+      setError("Failed to initialize PayPal button");
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="payment-modal-overlay">
       <div className="payment-modal-content">
@@ -181,7 +185,6 @@ onApprove: async (data) => {
     </div>
   );
 };
-
 export default function App() {
   const [input, setInput] = useState('');
   const [jobId, setJobId] = useState(null);
@@ -195,53 +198,44 @@ export default function App() {
   const timerRef = useRef(null);
   const logsEndRef = useRef(null);
 
- // Add this effect to your main App component
+ // Replace both payment verification useEffects with this single one:
 useEffect(() => {
   const handlePaymentReturn = async () => {
     const params = new URLSearchParams(window.location.search);
     const txId = params.get('tx');
     const hashMatch = window.location.hash.match(/#status\/([a-z0-9-]+)/i);
-    const jobId = hashMatch ? hashMatch[1] : null;
+    const jobIdFromUrl = hashMatch ? hashMatch[1] : null;
 
     if (txId) {
       try {
         // Try with the jobId from URL first
-        if (jobId && jobId !== 'null') {
-          const res = await fetch(`${API_BASE}/verify-payment/${jobId}?tx=${txId}`);
-          if (res.ok) return;
+        if (jobIdFromUrl && jobIdFromUrl !== 'null') {
+          const res = await fetch(`${API_BASE}/verify-payment/${jobIdFromUrl}?tx=${txId}`);
+          if (res.ok) {
+            const data = await res.json();
+            setJobId(data.job_id || jobIdFromUrl);  // Update state with job ID
+            setStatus(data.status || 'processing');
+            return;
+          }
         }
 
         // Fallback to transaction ID lookup
         const fallbackRes = await fetch(`${API_BASE}/verify-payment/null?tx=${txId}`);
         if (fallbackRes.ok) {
           const data = await fallbackRes.json();
+          setJobId(data.job_id);  // Update state with new job ID
+          setStatus('processing');
           window.location.hash = `#status/${data.job_id}`;
         }
       } catch (err) {
         console.error('Payment verification failed:', err);
+        setStatus('payment_failed');
       }
     }
   };
 
   handlePaymentReturn();
 }, []);
-     // Add this right after your existing hash routing useEffect
-useEffect(() => {
-  // Handle PayPal return with transaction ID
-  const params = new URLSearchParams(window.location.search);
-  const txId = params.get('tx');
-  
-  if (txId && window.location.hash.includes('#status')) {
-    // Verify payment and update status
-    fetch(`${API_BASE}/verify-payment/${jobId}?tx=${txId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'complete') {
-          setStatus('complete');
-        }
-      });
-  }
-}, [jobId]);
   // Handle hash routing for status page
   useEffect(() => {
     const handleHashChange = () => {
