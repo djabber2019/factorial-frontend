@@ -16,7 +16,13 @@ function ComputationStatusPage({ jobId, onBack }) {
   const [status, setStatus] = useState('processing');
   const [progress, setProgress] = useState(0);
   const eventSourceRef = useRef(null);
-
+// Add this to your ComputationStatusPage's useEffect
+useEffect(() => {
+  // Clear pending job ID when component mounts
+  localStorage.removeItem('pendingJobId');
+  
+  // ... rest of your existing useEffect code ...
+}, [jobId]);
   useEffect(() => {
     // Check initial status
     const checkStatus = async () => {
@@ -120,45 +126,37 @@ script.crossOrigin = "anonymous";  // Add this to enable card payments
     try {
       window.paypal.HostedButtons({
         hostedButtonId: HOSTED_BUTTON_ID,
-        onApprove: async (data) => {
-          try {
-            setStatus('verifying_payment');
-            
-            const response = await fetch(`${API_BASE}/capture-paypal-order`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                payment_id: data.orderID,
-                payer_id: data.payerID,
-                n: paymentInfo.n,
-                amount: PAYMENT_AMOUNT_USD.toFixed(2)
-              })
-            });
+        // Replace your existing PayPal onApprove handler with this:
+onApprove: async (data) => {
+  try {
+    setStatus('verifying_payment');
+    
+    const response = await fetch(`${API_BASE}/capture-paypal-order`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        payment_id: data.orderID,
+        payer_id: data.payerID,
+        n: paymentInfo.n,
+        amount: PAYMENT_AMOUNT_USD.toFixed(2)
+      })
+    });
 
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.detail || "Payment verification failed");
-            }
-
-            const result = await response.json();
-            window.location.href = `${window.location.origin}/#status/${result.job_id}`;
-            
-          } catch (err) {
-            console.error('Payment error:', err);
-            setError(err.message);
-            setStatus('payment_failed');
-          }
-        },
-        onError: (err) => {
-          console.error('PayPal error:', err);
-          setError(err.message || "Payment processing failed");
-        }
-      }).render("#paypal-button-container");
-    } catch (err) {
-      console.error('Button render error:', err);
-      setError("Failed to initialize payment button");
-    }
-  };
+    if (!response.ok) throw new Error("Payment verification failed");
+    
+    const result = await response.json();
+    
+    // Store job ID in localStorage as fallback
+    localStorage.setItem('pendingJobId', result.job_id);
+    
+    // Redirect with both job_id and transaction ID
+    window.location.href = `${window.location.origin}/#status/${result.job_id}?tx=${data.orderID}`;
+    
+  } catch (err) {
+    setError(err.message);
+    setStatus('payment_failed');
+  }
+};
 
   return (
     <div className="payment-modal-overlay">
@@ -198,6 +196,36 @@ export default function App() {
   const timerRef = useRef(null);
   const logsEndRef = useRef(null);
 
+ // Add this effect to your main App component
+useEffect(() => {
+  const handlePaymentReturn = async () => {
+    const params = new URLSearchParams(window.location.search);
+    const txId = params.get('tx');
+    const hashMatch = window.location.hash.match(/#status\/([a-z0-9-]+)/i);
+    const jobId = hashMatch ? hashMatch[1] : null;
+
+    if (txId) {
+      try {
+        // Try with the jobId from URL first
+        if (jobId && jobId !== 'null') {
+          const res = await fetch(`${API_BASE}/verify-payment/${jobId}?tx=${txId}`);
+          if (res.ok) return;
+        }
+
+        // Fallback to transaction ID lookup
+        const fallbackRes = await fetch(`${API_BASE}/verify-payment/null?tx=${txId}`);
+        if (fallbackRes.ok) {
+          const data = await fallbackRes.json();
+          window.location.hash = `#status/${data.job_id}`;
+        }
+      } catch (err) {
+        console.error('Payment verification failed:', err);
+      }
+    }
+  };
+
+  handlePaymentReturn();
+}, []);
      // Add this right after your existing hash routing useEffect
 useEffect(() => {
   // Handle PayPal return with transaction ID
