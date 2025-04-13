@@ -148,8 +148,9 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
             
             localStorage.setItem('pendingJobId', result.job_id);
             
-window.history.replaceState({}, '','${window.location.pathname}#status/${result.job_id}?tx=${data.orderID}`
-                            );
+window.history.replaceState({},' ',
+ `${window.location.pathname}#status/${result.job_id}?tx=${data.orderID}`
+);
                window.dispatchEvent(new Event('hashchange'));
           } catch (err) {
             setError(err.message);
