@@ -198,44 +198,39 @@ export default function App() {
   const timerRef = useRef(null);
   const logsEndRef = useRef(null);
 
- // Replace both payment verification useEffects with this single one:
+// Replace your existing payment verification useEffect with:
 useEffect(() => {
-  const handlePaymentReturn = async () => {
+  const verifyPayment = async () => {
     const params = new URLSearchParams(window.location.search);
     const txId = params.get('tx');
-    const hashMatch = window.location.hash.match(/#status\/([a-z0-9-]+)/i);
-    const jobIdFromUrl = hashMatch ? hashMatch[1] : null;
+    const hashJobId = window.location.hash.match(/#status\/(.+)/)?.[1];
 
     if (txId) {
       try {
-        // Try with the jobId from URL first
-        if (jobIdFromUrl && jobIdFromUrl !== 'null') {
-          const res = await fetch(`${API_BASE}/verify-payment/${jobIdFromUrl}?tx=${txId}`);
-          if (res.ok) {
-            const data = await res.json();
-            setJobId(data.job_id || jobIdFromUrl);  // Update state with job ID
-            setStatus(data.status || 'processing');
-            return;
-          }
-        }
-
-        // Fallback to transaction ID lookup
-        const fallbackRes = await fetch(`${API_BASE}/verify-payment/null?tx=${txId}`);
-        if (fallbackRes.ok) {
-          const data = await fallbackRes.json();
-          setJobId(data.job_id);  // Update state with new job ID
+        const verificationUrl = `${API_BASE}/verify-payment/${
+          hashJobId || 'null'
+        }?tx=${txId}`;
+        
+        const res = await fetch(verificationUrl);
+        if (res.ok) {
+          const data = await res.json();
+          // Clean URL after verification
+          window.history.replaceState({}, '', window.location.pathname);
+          setJobId(data.job_id);
           setStatus('processing');
-          window.location.hash = `#status/${data.job_id}`;
+        } else {
+          throw new Error('Verification failed');
         }
       } catch (err) {
         console.error('Payment verification failed:', err);
         setStatus('payment_failed');
+        toast.error('Payment verification failed. Please contact support.');
       }
     }
   };
-
-  handlePaymentReturn();
-}, []);
+  verifyPayment();
+}, []); 
+ // Empty dependency array = runs once on mount
   // Handle hash routing for status page
   useEffect(() => {
     const handleHashChange = () => {
