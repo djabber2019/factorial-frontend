@@ -147,8 +147,10 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
             const result = await response.json();
             
             localStorage.setItem('pendingJobId', result.job_id);
-            window.location.href = `${window.location.origin}/#status/${result.job_id}?tx=${data.orderID}`;
             
+window.history.replaceState({}, '','${window.location.pathname}#status/${result.job_id}?tx=${data.orderID}`
+                            );
+               window.dispatchEvent(new Event('hashchange'));
           } catch (err) {
             setError(err.message);
             setStatus('payment_failed');
@@ -198,23 +200,21 @@ export default function App() {
   const timerRef = useRef(null);
   const logsEndRef = useRef(null);
 
-// Replace your existing payment verification useEffect with:
 useEffect(() => {
   const verifyPayment = async () => {
     const params = new URLSearchParams(window.location.search);
     const txId = params.get('tx');
     const hashJobId = window.location.hash.match(/#status\/(.+)/)?.[1];
 
-    if (txId) {
+    // Only run verification if both conditions are true
+    if (txId && hashJobId) {
       try {
-        const verificationUrl = `${API_BASE}/verify-payment/${
-          hashJobId || 'null'
-        }?tx=${txId}`;
-        
+        const verificationUrl = `${API_BASE}/verify-payment/${hashJobId}?tx=${txId}`;
         const res = await fetch(verificationUrl);
+        
         if (res.ok) {
           const data = await res.json();
-          // Clean URL after verification
+          // Clear URL parameters after successful verification
           window.history.replaceState({}, '', window.location.pathname);
           setJobId(data.job_id);
           setStatus('processing');
@@ -223,15 +223,17 @@ useEffect(() => {
         }
       } catch (err) {
         console.error('Payment verification failed:', err);
-        setStatus('payment_failed');
-        toast.error('Payment verification failed. Please contact support.');
+        setStatus('idle'); // Reset to initial state
+        toast.error('Invalid or expired payment session');
+        // Clear invalid URL parameters
+        window.history.replaceState({}, '', window.location.pathname);
       }
     }
   };
+  
   verifyPayment();
-}, []); 
- // Empty dependency array = runs once on mount
-  // Handle hash routing for status page
+}, []); // Empty dependency array = runs once on mount
+     // Handle hash routing for status page
   useEffect(() => {
     const handleHashChange = () => {
       const match = window.location.hash.match(/#status\/([a-z0-9-]+)/i);
