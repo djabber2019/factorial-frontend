@@ -313,6 +313,21 @@ useEffect(() => {
     const es = new EventSource(`${API_BASE}/stream-status/${jobId}`);
     eventSourceRef.current = es;
 
+       // Add initial status check
+  fetch(`${API_BASE}/job/${jobId}`)
+    .then(res => {
+      if (!res.ok) throw new Error('Job not found');
+      return res.json();
+    })
+    .then(data => {
+      if (data.status === 'complete') {
+        handleCompletion(data.file_size);
+      }
+    })
+    .catch(err => {
+      addLog(`Error: ${err.message}`);
+      handleError(err);
+    });
     es.onmessage = (e) => {
       if (e.data.trim() === ": heartbeat") {
         setProgress(prev => Math.min(prev + 1, 99));
