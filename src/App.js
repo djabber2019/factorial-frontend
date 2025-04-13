@@ -199,7 +199,39 @@ export default function App() {
   const logsEndRef = useRef(null);
 
   useEffect(() => {
-    const verifyPayment = async () => {
+  const verifyPayment = async () => {
+    const params = new URLSearchParams(window.location.search);
+    const txId = params.get('tx');
+    
+    if (txId) {
+      try {
+        // Emergency debug endpoint
+        const debugRes = await fetch(`${API_BASE}/debug/paypal-capture`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({txId, timestamp: new Date().toISOString()})
+        });
+        
+        if (!debugRes.ok) throw new Error('Debug endpoint failed');
+        
+        // Minimal verification
+        setStatus('processing');
+        setJobId(`temp-${txId.slice(0,8)}`);
+        toast.success("Payment received! Processing...");
+        
+      } catch (err) {
+        console.error('EMERGENCY MODE ERROR:', err);
+        toast.error(`System in maintenance. Your TX ID: ${txId}`);
+      }
+      finally {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  };
+  verifyPayment();
+}, []);
+  useEffect(() => {
+    const verifyPaymient = async () => {
       const params = new URLSearchParams(window.location.search);
       const txId = params.get('tx');
       const hashJobId = window.location.hash.match(/#status\/(.+)/)?.[1];
