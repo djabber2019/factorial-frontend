@@ -4,9 +4,10 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
+// Configuration
 const API_BASE = window.location.protocol === 'https:' 
-     ? 'https://factorial-backend.sliplane.app'
-     : 'http://localhost:8000';
+  ? 'https://factorial-backend.sliplane.app' 
+  : 'http://localhost:8000';
 const PAYPAL_CLIENT_ID = "BAA8dKbVBT4qMLH-4mtdh2zLehGDZVbd7wOLXRIXmJobW_CJBNn2sqFpyqdnF5v1D6huRFXWISHMU2LSM8";
 const HOSTED_BUTTON_ID = "9EUNPRHJB3SNQ";
 const PAYMENT_THRESHOLD = process.env.REACT_APP_PAYMENT_THRESHOLD || 1000;
@@ -16,15 +17,10 @@ function ComputationStatusPage({ jobId, onBack }) {
   const [status, setStatus] = useState('processing');
   const [progress, setProgress] = useState(0);
   const eventSourceRef = useRef(null);
-// Add this to your ComputationStatusPage's useEffect
-useEffect(() => {
-  // Clear pending job ID when component mounts
-  localStorage.removeItem('pendingJobId');
-  
-  // ... rest of your existing useEffect code ...
-}, [jobId]);
+
   useEffect(() => {
-    // Check initial status
+    localStorage.removeItem('pendingJobId');
+
     const checkStatus = async () => {
       try {
         const res = await fetch(`${API_BASE}/job/${jobId}`);
@@ -39,7 +35,6 @@ useEffect(() => {
 
     checkStatus();
 
-    // Set up progress updates
     eventSourceRef.current = new EventSource(`${API_BASE}/stream-status/${jobId}`);
     
     eventSourceRef.current.onmessage = (e) => {
@@ -50,9 +45,7 @@ useEffect(() => {
       }
     };
 
-    return () => {
-      eventSourceRef.current?.close();
-    };
+    return () => eventSourceRef.current?.close();
   }, [jobId]);
 
   return (
@@ -85,7 +78,7 @@ useEffect(() => {
     </div>
   );
 }
-  
+
 const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -145,16 +138,19 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
             if (!response.ok) throw new Error("Payment verification failed");
             
             const result = await response.json();
-            
             localStorage.setItem('pendingJobId', result.job_id);
             
-window.history.replaceState({},' ',
- `${window.location.pathname}#status/${result.job_id}?tx=${data.orderID}`
-);
-               window.dispatchEvent(new Event('hashchange'));
+            window.history.replaceState(
+              {}, 
+              '', 
+              `${window.location.pathname}#status/${result.job_id}?tx=${data.orderID}`
+            );
+            window.dispatchEvent(new Event('hashchange'));
+            
           } catch (err) {
             setError(err.message);
             setStatus('payment_failed');
+            toast.error(`Payment failed: ${err.message}`);
           }
         }
       }).render("#paypal-button-container");
@@ -188,6 +184,7 @@ window.history.replaceState({},' ',
     </div>
   );
 };
+
 export default function App() {
   const [input, setInput] = useState('');
   const [jobId, setJobId] = useState(null);
@@ -201,40 +198,37 @@ export default function App() {
   const timerRef = useRef(null);
   const logsEndRef = useRef(null);
 
-useEffect(() => {
-  const verifyPayment = async () => {
-    const params = new URLSearchParams(window.location.search);
-    const txId = params.get('tx');
-    const hashJobId = window.location.hash.match(/#status\/(.+)/)?.[1];
+  useEffect(() => {
+    const verifyPayment = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const txId = params.get('tx');
+      const hashJobId = window.location.hash.match(/#status\/(.+)/)?.[1];
 
-    // Only run verification if both conditions are true
-    if (txId && hashJobId) {
-      try {
-        const verificationUrl = `${API_BASE}/verify-payment/${hashJobId}?tx=${txId}`;
-        const res = await fetch(verificationUrl);
-        
-        if (res.ok) {
-          const data = await res.json();
-          // Clear URL parameters after successful verification
+      if (txId && hashJobId) {
+        try {
+          const verificationUrl = `${API_BASE}/verify-payment/${hashJobId}?tx=${txId}`;
+          const res = await fetch(verificationUrl);
+          
+          if (res.ok) {
+            const data = await res.json();
+            window.history.replaceState({}, '', window.location.pathname);
+            setJobId(data.job_id);
+            setStatus('processing');
+          } else {
+            throw new Error('Verification failed');
+          }
+        } catch (err) {
+          console.error('Payment verification failed:', err);
+          setStatus('idle');
+          toast.error('Invalid or expired payment session');
           window.history.replaceState({}, '', window.location.pathname);
-          setJobId(data.job_id);
-          setStatus('processing');
-        } else {
-          throw new Error('Verification failed');
         }
-      } catch (err) {
-        console.error('Payment verification failed:', err);
-        setStatus('idle'); // Reset to initial state
-        toast.error('Invalid or expired payment session');
-        // Clear invalid URL parameters
-        window.history.replaceState({}, '', window.location.pathname);
       }
-    }
-  };
-  
-  verifyPayment();
-}, []); // Empty dependency array = runs once on mount
-     // Handle hash routing for status page
+    };
+    
+    verifyPayment();
+  }, []);
+
   useEffect(() => {
     const handleHashChange = () => {
       const match = window.location.hash.match(/#status\/([a-z0-9-]+)/i);
@@ -245,7 +239,7 @@ useEffect(() => {
     };
     
     window.addEventListener('hashchange', handleHashChange);
-    handleHashChange(); // Check initial URL
+    handleHashChange();
     
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
@@ -257,21 +251,21 @@ useEffect(() => {
   };
 
   const handleCompute = async () => {
-  const num = parseInt(input);
-  
-  if (isNaN(num) || num <= 0) {
-    toast.error("Please enter a valid positive number");
-    return;
-  }
+    const num = parseInt(input);
+    
+    if (isNaN(num) || num <= 0) {
+      toast.error("Please enter a valid positive number");
+      return;
+    }
 
-  if (num > PAYMENT_THRESHOLD) {
-    setPaymentInfo({ n: num, amount: PAYMENT_AMOUNT_USD });
-    setStatus('payment_pending');
-    return;
-  }
-  
-  await startComputation(num);
-};
+    if (num > PAYMENT_THRESHOLD) {
+      setPaymentInfo({ n: num, amount: PAYMENT_AMOUNT_USD });
+      setStatus('payment_pending');
+      return;
+    }
+    
+    await startComputation(num);
+  };
 
   const startComputation = async (num) => {
     addLog(`Initializing computation for n=${num}`);
@@ -313,21 +307,21 @@ useEffect(() => {
     const es = new EventSource(`${API_BASE}/stream-status/${jobId}`);
     eventSourceRef.current = es;
 
-       // Add initial status check
-  fetch(`${API_BASE}/job/${jobId}`)
-    .then(res => {
-      if (!res.ok) throw new Error('Job not found');
-      return res.json();
-    })
-    .then(data => {
-      if (data.status === 'complete') {
-        handleCompletion(data.file_size);
-      }
-    })
-    .catch(err => {
-      addLog(`Error: ${err.message}`);
-      handleError(err);
-    });
+    fetch(`${API_BASE}/job/${jobId}`)
+      .then(res => {
+        if (!res.ok) throw new Error('Job not found');
+        return res.json();
+      })
+      .then(data => {
+        if (data.status === 'complete') {
+          handleCompletion(data.file_size);
+        }
+      })
+      .catch(err => {
+        addLog(`Error: ${err.message}`);
+        handleError(err);
+      });
+
     es.onmessage = (e) => {
       if (e.data.trim() === ": heartbeat") {
         setProgress(prev => Math.min(prev + 1, 99));
@@ -497,5 +491,3 @@ useEffect(() => {
     </div>
   );
 }
-
-
