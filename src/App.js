@@ -202,6 +202,43 @@ export default function App() {
   const verifyPayment = async () => {
     const params = new URLSearchParams(window.location.search);
     const txId = params.get('tx');
+    const hashJobId = window.location.hash.match(/#status\/(.+)/)?.[1];
+
+    if (txId && hashJobId) {
+      try {
+        setStatus('verifying_payment');
+        
+        // Properly verify with backend
+        const res = await fetch(`${API_BASE}/verify-payment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transaction_id: txId })
+        });
+
+        if (!res.ok) throw new Error('Payment verification failed');
+
+        const data = await res.json();
+        
+        // Use the backend-generated job_id (not a temp ID!)
+        setJobId(data.job_id);
+        setStatus('processing');
+        window.history.replaceState({}, '', `/status/${data.job_id}`);
+        
+      } catch (err) {
+        console.error('Payment verification failed:', err);
+        setStatus('idle');
+        toast.error('Payment verification failed. Contact support with TX ID: ' + txId);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  };
+  
+  verifyPayment();
+}, []);
+ /* useEffect(() => {
+  const verifyPayment = async () => {
+    const params = new URLSearchParams(window.location.search);
+    const txId = params.get('tx');
     
     if (txId) {
       try {
@@ -230,6 +267,7 @@ export default function App() {
   };
   verifyPayment();
 }, []);
+*/
  /* useEffect(() => {
     const verifyPaymient1 = async () => {
       const params = new URLSearchParams(window.location.search);
