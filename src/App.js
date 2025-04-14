@@ -421,7 +421,43 @@ export default function App() {
     setProgress(100);
     toast.success(`Computation completed in ${timeElapsed}s`);
   };
+// Add this with your other handler functions (around line 150)
+const handleDownload = async (jobId) => {
+  try {
+    // First verify completion status
+    const statusRes = await fetch(`${API_BASE}/job/${jobId}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!statusRes.ok) {
+      throw new Error(`Server returned ${statusRes.status}`);
+    }
 
+    const statusData = await statusRes.json();
+    if (statusData.status !== 'complete') {
+      throw new Error('Computation still in progress');
+    }
+
+    // Create hidden download link
+    const link = document.createElement('a');
+    link.href = `${API_BASE}/download/${jobId}`;
+    link.download = `factorial_${jobId}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Revoke the object URL
+    setTimeout(() => window.URL.revokeObjectURL(link.href), 100);
+
+  } catch (error) {
+    toast.error(`Download failed: ${error.message}`);
+    console.error('Download error:', error);
+    // Additional error reporting could go here
+  }
+};
   const handleError = (error) => {
     addLog(`Error: ${error.message}`);
     clearInterval(timerRef.current);
@@ -490,13 +526,16 @@ export default function App() {
             )}
 
             {status === 'complete' && jobId && (
-              <a
-                href={`${API_BASE}/download/${jobId}`}
-                className="download-button"
-                download
-              >
-                <FaDownload /> Download Result
-              </a>
+              <a 
+  href="#"
+  onClick={(e) => {
+    e.preventDefault();
+    handleDownload(jobId);
+  }}
+  className="download-button"
+>
+  <FaDownload /> Download Result
+</a>
             )}
 
             {status === 'error' && (
