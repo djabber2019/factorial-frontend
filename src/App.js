@@ -442,18 +442,25 @@ const handleDownload = async (jobId) => {
     const contentLength = +response.headers.get('Content-Length');
     let receivedLength = 0;
     let chunks = [];
+const handleDownload = async (jobId) => {
+  try {
+    setDownloadProgress(0);
     
-    while(true) {
-      const {done, value} = await reader.read();
-      if (done) break;
-      
-      chunks.push(value);
-      receivedLength += value.length;
-      setDownloadProgress(Math.round((receivedLength / contentLength) * 100));
+    // Verify job completion
+    const statusRes = await fetch(`${API_BASE}/job/${jobId}`);
+    if (!statusRes.ok) throw new Error(`Server error: ${statusRes.status}`);
+    
+    const { status, file_size } = await statusRes.json();
+    if (status !== 'complete') {
+      throw new Error('Computation not yet complete');
     }
 
-    // Combine chunks and create download
-    const blob = new Blob(chunks);
+    // Start download
+    const response = await fetch(`${API_BASE}/download/${jobId}`);
+    if (!response.ok) throw new Error('Download failed');
+    
+    // Handle the download
+    const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -465,13 +472,13 @@ const handleDownload = async (jobId) => {
     setTimeout(() => {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      setDownloadProgress(0); // Reset when done
+      setDownloadProgress(0);
     }, 100);
 
   } catch (error) {
     toast.error(`Download failed: ${error.message}`);
     console.error('Download error:', error);
-    setDownloadProgress(0); // Reset on error
+    setDownloadProgress(0);
   }
 };
   const handleError = (error) => {
@@ -541,18 +548,7 @@ const handleDownload = async (jobId) => {
               </div>
             )}
 
-            {status === 'complete' && jobId && (
-              <a 
-  href="#"
-  onClick={(e) => {
-    e.preventDefault();
-    handleDownload(jobId);
-  }}
-  className="download-button"
->
-  <FaDownload /> Download Result
-</a>
-            )}
+            
 {status === 'complete' && jobId && (
   <div className="download-container">
     <button 
