@@ -17,6 +17,8 @@ function ComputationStatusPage({ jobId, onBack }) {
   const [status, setStatus] = useState('processing');
   const [progress, setProgress] = useState(0);
   const eventSourceRef = useRef(null);
+  // Add this new state:
+const [downloadProgress, setDownloadProgress] = useState(0);
 
   useEffect(() => {
     localStorage.removeItem('pendingJobId');
@@ -421,41 +423,55 @@ export default function App() {
     setProgress(100);
     toast.success(`Computation completed in ${timeElapsed}s`);
   };
-// Add this with your other handler functions (around line 150)
 const handleDownload = async (jobId) => {
   try {
-    // First verify completion status
-    const statusRes = await fetch(`${API_BASE}/job/${jobId}`, {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
+    setDownloadProgress(0); // Reset progress
     
-    if (!statusRes.ok) {
-      throw new Error(`Server returned ${statusRes.status}`);
-    }
-
+    // Verify job completion first
+    const statusRes = await fetch(`${API_BASE}/job/${jobId}`);
+    if (!statusRes.ok) throw new Error('Job status check failed');
+    
     const statusData = await statusRes.json();
     if (statusData.status !== 'complete') {
-      throw new Error('Computation still in progress');
+      throw new Error('Computation not yet complete');
     }
 
-    // Create hidden download link
-    const link = document.createElement('a');
-    link.href = `${API_BASE}/download/${jobId}`;
-    link.download = `factorial_${jobId}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Start the download with progress tracking
+    const response = await fetch(`${API_BASE}/download/${jobId}`);
+    const reader = response.body.getReader();
+    const contentLength = +response.headers.get('Content-Length');
+    let receivedLength = 0;
+    let chunks = [];
+    
+    while(true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      
+      chunks.push(value);
+      receivedLength += value.length;
+      setDownloadProgress(Math.round((receivedLength / contentLength) * 100));
+    }
 
-    // Revoke the object URL
-    setTimeout(() => window.URL.revokeObjectURL(link.href), 100);
+    // Combine chunks and create download
+    const blob = new Blob(chunks);
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `factorial_${jobId}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Cleanup
+    setTimeout(() => {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      setDownloadProgress(0); // Reset when done
+    }, 100);
 
   } catch (error) {
     toast.error(`Download failed: ${error.message}`);
     console.error('Download error:', error);
-    // Additional error reporting could go here
+    setDownloadProgress(0); // Reset on error
   }
 };
   const handleError = (error) => {
@@ -537,6 +553,32 @@ const handleDownload = async (jobId) => {
   <FaDownload /> Download Result
 </a>
             )}
+{status === 'complete' && jobId && (
+  <div className="download-container">
+    <button 
+      onClick={() => handleDownload(jobId)}
+      className="download-button"
+      disabled={downloadProgress > 0 && downloadProgress < 100}
+    >
+      {downloadProgress === 0 ? (
+        <><FaDownload /> Download Result</>
+      ) : downloadProgress === 100 ? (
+        'Download Complete!'
+      ) : (
+        `Downloading... ${downloadProgress}%`
+      )}
+    </button>
+    
+    {downloadProgress > 0 && downloadProgress < 100 && (
+      <div className="download-progress-bar">
+        <div 
+          className="download-progress-fill" 
+          style={{ width: `${downloadProgress}%` }}
+        />
+      </div>
+    )}
+  </div>
+)}
 
             {status === 'error' && (
               <button onClick={handleCompute} className="retry-button">
