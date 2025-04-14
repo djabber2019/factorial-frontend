@@ -423,25 +423,7 @@ export default function App() {
     setProgress(100);
     toast.success(`Computation completed in ${timeElapsed}s`);
   };
-const handleDownload = async (jobId) => {
-  try {
-    setDownloadProgress(0); // Reset progress
-    
-    // Verify job completion first
-    const statusRes = await fetch(`${API_BASE}/job/${jobId}`);
-    if (!statusRes.ok) throw new Error('Job status check failed');
-    
-    const statusData = await statusRes.json();
-    if (statusData.status !== 'complete') {
-      throw new Error('Computation not yet complete');
-    }
 
-    // Start the download with progress tracking
-    const response = await fetch(`${API_BASE}/download/${jobId}`);
-    const reader = response.body.getReader();
-    const contentLength = +response.headers.get('Content-Length');
-    let receivedLength = 0;
-    let chunks = [];
 const handleDownload = async (jobId) => {
   try {
     setDownloadProgress(0);
@@ -481,12 +463,7 @@ const handleDownload = async (jobId) => {
     setDownloadProgress(0);
   }
 };
-  const handleError = (error) => {
-    addLog(`Error: ${error.message}`);
-    clearInterval(timerRef.current);
-    setStatus('error');
-    toast.error(error.message);
-  };
+
 
   const clearLogs = () => {
     setLogs([]);
