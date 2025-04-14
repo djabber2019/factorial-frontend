@@ -231,7 +231,7 @@ export default function App() {
   verifyPayment();
 }, []);
   useEffect(() => {
-    const verifyPaymient = async () => {
+    const verifyPaymient1 = async () => {
       const params = new URLSearchParams(window.location.search);
       const txId = params.get('tx');
       const hashJobId = window.location.hash.match(/#status\/(.+)/)?.[1];
@@ -258,7 +258,7 @@ export default function App() {
       }
     };
     
-    verifyPayment();
+    verifyPayment1();
   }, []);
 
   useEffect(() => {
