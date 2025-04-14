@@ -230,7 +230,7 @@ export default function App() {
   };
   verifyPayment();
 }, []);
-  useEffect(() => {
+ /* useEffect(() => {
     const verifyPaymient1 = async () => {
       const params = new URLSearchParams(window.location.search);
       const txId = params.get('tx');
@@ -260,7 +260,7 @@ export default function App() {
     
     verifyPayment1();
   }, []);
-
+*/
   useEffect(() => {
     const handleHashChange = () => {
       const match = window.location.hash.match(/#status\/([a-z0-9-]+)/i);
