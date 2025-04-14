@@ -423,47 +423,72 @@ export default function App() {
     setProgress(100);
     toast.success(`Computation completed in ${timeElapsed}s`);
   };
-
 const handleDownload = async (jobId) => {
   try {
-    setDownloadProgress(0);
+    setDownloadProgress(0); // Reset progress
     
-    // Verify job completion
-    const statusRes = await fetch(`${API_BASE}/job/${jobId}`);
-    if (!statusRes.ok) throw new Error(`Server error: ${statusRes.status}`);
+    // 1. Verify computation is complete first
+    const statusCheck = await fetch(`${API_BASE}/job/${jobId}`);
+    if (!statusCheck.ok) throw new Error('Failed to verify job status');
     
-    const { status, file_size } = await statusRes.json();
+    const { status } = await statusCheck.json();
     if (status !== 'complete') {
-      throw new Error('Computation not yet complete');
+      throw new Error('Computation not finished yet');
     }
 
-    // Start download
-    const response = await fetch(`${API_BASE}/download/${jobId}`);
-    if (!response.ok) throw new Error('Download failed');
+    // 2. Start download with 30s timeout
+    const downloadUrl = `${API_BASE}/download/${jobId}`;
+    const response = await fetch(downloadUrl, {
+      signal: AbortSignal.timeout(30000) // Fails after 30 seconds
+    });
+
+    // 3. Handle failed download
+    if (!response.ok) {
+      throw new Error(`Server responded with ${response.status}`);
+    }
+
+    // 4. Process download stream with progress
+    const reader = response.body.getReader();
+    const contentLength = +response.headers.get('Content-Length');
+    let receivedLength = 0;
+    let chunks = [];
     
-    // Handle the download
-    const blob = await response.blob();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      chunks.push(value);
+      receivedLength += value.length;
+      setDownloadProgress(Math.round((receivedLength / contentLength) * 100));
+    }
+
+    // 5. Create and trigger download
+    const blob = new Blob(chunks);
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `factorial_${jobId}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    
-    // Cleanup
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `factorial_${jobId}.txt`;
+    document.body.appendChild(link);
+    link.click();
+
+    // 6. Cleanup
     setTimeout(() => {
-      document.body.removeChild(a);
+      document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       setDownloadProgress(0);
     }, 100);
 
   } catch (error) {
-    toast.error(`Download failed: ${error.message}`);
+    // Handle different error types
+    const errorMsg = error.name === 'TimeoutError' 
+      ? 'Download timed out (30s)' 
+      : error.message;
+    
+    toast.error(`Download failed: ${errorMsg}`);
     console.error('Download error:', error);
     setDownloadProgress(0);
   }
 };
-
 
   const clearLogs = () => {
     setLogs([]);
