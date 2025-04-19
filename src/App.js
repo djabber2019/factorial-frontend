@@ -6,7 +6,7 @@ import './App.css';
 
 // Configuration
 const API_BASE = window.location.protocol === 'https:' 
-  ? 'https://factorial-backend.web.app' 
+  ? 'https://factorial-backend.firebaseapp.com' 
   : 'http://localhost:8000';
 const PAYPAL_CLIENT_ID = "BAA8dKbVBT4qMLH-4mtdh2zLehGDZVbd7wOLXRIXmJobW_CJBNn2sqFpyqdnF5v1D6huRFXWISHMU2LSM8";
 const HOSTED_BUTTON_ID = "9EUNPRHJB3SNQ";
