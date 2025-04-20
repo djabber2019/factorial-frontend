@@ -7,7 +7,8 @@ import './App.css';
 // Configuration
 const API_BASE = window.location.protocol === 'https:' 
   ? 'https://factorial-backend.firebaseapp.com' 
-  : 'http://localhost:8000';
+  : 'http://localhost:8000' 
+  : 'https://factorial-backend-89657343382.us-central1.run.app';
 const PAYPAL_CLIENT_ID = "BAA8dKbVBT4qMLH-4mtdh2zLehGDZVbd7wOLXRIXmJobW_CJBNn2sqFpyqdnF5v1D6huRFXWISHMU2LSM8";
 const HOSTED_BUTTON_ID = "9EUNPRHJB3SNQ";
 const PAYMENT_THRESHOLD = process.env.REACT_APP_PAYMENT_THRESHOLD || 1000;
