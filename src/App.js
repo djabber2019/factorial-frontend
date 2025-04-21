@@ -14,56 +14,27 @@ const PAYPAL_CLIENT_ID = "BAA8dKbVBT4qMLH-4mtdh2zLehGDZVbd7wOLXRIXmJobW_CJBNn2sq
 const HOSTED_BUTTON_ID = "9EUNPRHJB3SNQ";
 const PAYMENT_THRESHOLD = process.env.REACT_APP_PAYMENT_THRESHOLD || 1000;
 const PAYMENT_AMOUNT_USD = process.env.REACT_APP_PAYMENT_AMOUNT_USD || 4.99;
+const AppConfig = {
+  MAX_INPUT: 1000000,
+  // other configs...
+};
 
-function ComputationStatusPage({ jobId, onBack }) {
-  const [status, setStatus] = useState('processing');
-  const [progress, setProgress] = useState(0);
-  const eventSourceRef = useRef(null);
-  // Add this new state:
-const [downloadProgress, setDownloadProgress] = useState(0);
-
-  useEffect(() => {
-    localStorage.removeItem('pendingJobId');
-
-    const checkStatus = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/job/${jobId}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.status === 'complete') setStatus('complete');
-        }
-      } catch (err) {
-        console.error('Status check failed:', err);
-        logError(err); // Send to monitoring service
-    };
-
-    checkStatus();
-
-    eventSourceRef.current = new EventSource(`${API_BASE}/stream-status/${jobId}`);
-    
-    eventSourceRef.current.onmessage = (e) => {
-      if (e.data.includes('complete')) {
-        setStatus('complete');
-      } else if (!isNaN(e.data)) {
-        setProgress(parseInt(e.data));
-      }
-    };
-
-    return () => eventSourceRef.current?.close();
-  }, [jobId]);
-
+function ComputationStatusPage({ jobId, onBack, handleDownload, downloadProgress }) {
+  ...
   return (
     <div className="status-page">
       {status === 'complete' ? (
         <>
           <h3>Computation Complete!</h3>
-          <a 
-            href={`${API_BASE}/download/${jobId}`}
+          <button 
             className="download-button"
-            download={`factorial_${jobId}.txt`}
+            onClick={() => handleDownload(jobId)}
           >
-            <FaDownload /> Download Result
-          </a>
+            <FaDownload /> 
+            {downloadProgress > 0 && downloadProgress < 100 
+              ? `Downloading... ${downloadProgress}%` 
+              : 'Download Result'}
+          </button>
         </>
       ) : (
         <>
@@ -82,7 +53,6 @@ const [downloadProgress, setDownloadProgress] = useState(0);
     </div>
   );
 }
-
 const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
