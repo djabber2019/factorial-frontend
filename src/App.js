@@ -20,7 +20,6 @@ const AppConfig = {
 };
 
 function ComputationStatusPage({ jobId, onBack, handleDownload, downloadProgress }) {
-  ...
   return (
     <div className="status-page">
       {status === 'complete' ? (
