@@ -34,7 +34,7 @@ const [downloadProgress, setDownloadProgress] = useState(0);
         }
       } catch (err) {
         console.error('Status check failed:', err);
-      }
+        logError(err); // Send to monitoring service
     };
 
     checkStatus();
@@ -155,10 +155,11 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
             setError(err.message);
             setStatus('payment_failed');
             toast.error(`Payment failed: ${err.message}`);
-          }
+            logError(err); // Send to monitoring service
         }
       }).render("#paypal-button-container");
     } catch (err) {
+      logError(err); // Send to monitoring service
       setError("Failed to initialize PayPal button");
       setLoading(false);
     }
@@ -229,6 +230,7 @@ export default function App() {
         window.history.replaceState({}, '', `/status/${data.job_id}`);
         
       } catch (err) {
+        logError(err); // Send to monitoring service
         console.error('Payment verification failed:', err);
         setStatus('idle');
         toast.error('Payment verification failed. Contact support with TX ID: ' + txId);
@@ -325,12 +327,15 @@ export default function App() {
   };
 
   const handleCompute = async () => {
-    const num = parseInt(input);
-    
-    if (isNaN(num) || num <= 0) {
-      toast.error("Please enter a valid positive number");
+    const num = Math.min(
+          Math.max(parseInt(input) || 0,  // Default to 0 if NaN
+          AppConfig.MAX_INPUT || 1_000_000 // Enforce server-side limit
+);
+   if (num <= 0) {
+      toast.error("Must be positive integer");
       return;
-    }
+}
+    
 
     if (num > PAYMENT_THRESHOLD) {
       setPaymentInfo({ n: num, amount: PAYMENT_AMOUNT_USD });
@@ -371,6 +376,7 @@ export default function App() {
       setJobId(data.job_id);
       setupEventStream(data.job_id);
     } catch (error) {
+      logError(err); // Send to monitoring service
       addLog(`Error: ${error.message}`);
       handleError(error);
     }
@@ -392,6 +398,7 @@ export default function App() {
         }
       })
       .catch(err => {
+        logError(err); // Send to monitoring service
         addLog(`Error: ${err.message}`);
         handleError(err);
       });
@@ -487,6 +494,7 @@ const handleDownload = async (jobId) => {
       : error.message;
     
     toast.error(`Download failed: ${errorMsg}`);
+    logError(err); // Send to monitoring service
     console.error('Download error:', error);
     setDownloadProgress(0);
   }
