@@ -380,7 +380,7 @@ export default function App() {
       setJobId(data.job_id);  
       setupEventStream(data.job_id);  
     } catch (error) {  
-      logError(err); // Send to monitoring service  
+      logError(error); // Send to monitoring service  
       addLog(`Error: ${error.message}`);  
       handleError(error);  
     }  
@@ -498,7 +498,7 @@ const handleDownload = async (jobId) => {
       : error.message;  
       
     toast.error(`Download failed: ${errorMsg}`);  
-    logError(err); // Send to monitoring service  
+    logError(error); // Send to monitoring service  
     console.error('Download error:', error);  
     setDownloadProgress(0);  
   }  
