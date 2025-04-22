@@ -160,7 +160,8 @@ const PayPalPaymentModal = ({ paymentInfo, setPaymentInfo, setStatus, setJobId }
             setStatus('payment_failed');  
             toast.error(`Payment failed: ${err.message}`);  
             logError(err); // Send to monitoring service  
-      //  }  
+      }  
+        }
       }).render("#paypal-button-container");  
     } catch (err) {  
       logError(err); // Send to monitoring service  
