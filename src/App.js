@@ -406,6 +406,7 @@ export default function App() {
         addLog(`Error: ${err.message}`);  
         handleError(err);  
       });  
+
   
     es.onmessage = (e) => {  
       if (e.data.trim() === ": heartbeat") {  
