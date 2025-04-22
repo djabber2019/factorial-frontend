@@ -334,8 +334,8 @@ export default function App() {
   const handleCompute = async () => {  
     const num = Math.min(  
           Math.max(parseInt(input) || 0,  // Default to 0 if NaN  
-          AppConfig.MAX_INPUT || 1_000_000 // Enforce server-side limit  
-);  
+          AppConfig.MAX_INPUT || 1_000_000) 
+    );  
    if (num <= 0) {  
       toast.error("Must be positive integer");  
       return;  
