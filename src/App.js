@@ -330,19 +330,14 @@ export default function App() {
     setLogs(prev => [...prev, `${timestamp}: ${message}`]);  
     setTimeout(() => logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);  
   };  
+  const handleCompute = async () => {
+    const num = parseInt(input);
+    if (isNaN(num) || num < 0) {
+    toast.error("Invalid input. Must be a positive integer ");
+    return;
+  }
   
-  const handleCompute = async () => {  
-    const num = Math.min(  
-          Math.max(parseInt(input) || 0,  // Default to 0 if NaN  
-          AppConfig.MAX_INPUT || 1_000_000) 
-    );  
-   if (num <= 0) {  
-      toast.error("Must be positive integer");  
-      return;  
-}  
-      
-  
-    if (num > PAYMENT_THRESHOLD) {  
+     if (num > PAYMENT_THRESHOLD) {  
       setPaymentInfo({ n: num, amount: PAYMENT_AMOUNT_USD });  
       setStatus('payment_pending');  
       return;  
