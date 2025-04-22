@@ -3,7 +3,11 @@ import { FaSpinner, FaDownload, FaInfoCircle, FaTimes } from 'react-icons/fa';
 import { ToastContainer, toast } from 'react-toastify';  
 import 'react-toastify/dist/ReactToastify.css';  
 import './App.css';  
-  
+
+const AppConfig = {
+  MAX_INPUT: 1000000,
+  // other configs...
+};
 // Configuration  
 const API_BASE = window.location.hostname === 'localhost' 
      ? 'http://localhost:8000'
@@ -34,7 +38,8 @@ const [downloadProgress, setDownloadProgress] = useState(0);
       } catch (err) {  
         console.error('Status check failed:', err);  
         logError(err); // Send to monitoring service  
-    };  
+      }
+      };  
   
     checkStatus();  
   
