@@ -379,7 +379,13 @@ export default function App() {
       logError(error); // Send to monitoring service  
       addLog(`Error: ${error.message}`);  
       handleError(error);  
-    }  
+      
+    }  // Run this in browser console
+    console.log(
+      window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000' 
+    : 'https://factorial-backend.web.app/api'
+);
   };  
   
   const setupEventStream = (jobId) => {  
