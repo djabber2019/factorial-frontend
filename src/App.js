@@ -11,7 +11,7 @@ const AppConfig = {
 // Configuration  
 const API_BASE = window.location.hostname === 'localhost' 
      ? 'http://localhost:8000'
-     : '/api'; 
+     : 'https://factorial-backend.web.app/api'; 
 // Works with both default Firebase domains
 const PAYPAL_CLIENT_ID = "BAA8dKbVBT4qMLH-4mtdh2zLehGDZVbd7wOLXRIXmJobW_CJBNn2sqFpyqdnF5v1D6huRFXWISHMU2LSM8";  
 const HOSTED_BUTTON_ID = "9EUNPRHJB3SNQ";  
